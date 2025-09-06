@@ -32,7 +32,7 @@ M.setup = function (opts)
             end
         end
     })
-
+    return M
 end
 
 M.add_drawer = function (name)
