@@ -62,7 +62,7 @@ local function serialize(tbl)
         result = result .. key .. '=' .. value .. ','
     end
 
-    result = 'return' .. result .. '}'
+    result = result .. '}'
     return result
 end
 
@@ -80,7 +80,7 @@ M.save = function(tbl)
 
     local f = assert(io.open(data_file_path, 'w'))
 
-    f:write(serialize(tbl))
+    f:write('return' .. serialize(tbl))
     f:close()
 end
 
