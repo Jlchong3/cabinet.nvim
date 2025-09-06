@@ -69,6 +69,10 @@ M.get_drawers = function ()
     return drawer:get_drawers()
 end
 
+M.get_active_drawer_index = function ()
+    return drawer.current_drawer
+end
+
 M.get_drawer_files = function (index)
     return drawer:get_drawer_files(index)
 end

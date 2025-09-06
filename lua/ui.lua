@@ -81,6 +81,7 @@ local function update_drawers()
     end
 
     local drawers = drawer_api.get_drawers()
+    local current_active = drawer_api.get_active_drawer_index()
     for i = #drawers, 1, -1 do
         drawer_api.remove_drawer(i)
     end
@@ -90,6 +91,8 @@ local function update_drawers()
         local added = drawer_api.get_drawers()[#drawer_api.get_drawers()]
         added.files = d.files
     end
+
+    if current_active <= #new_list then drawer_api.open_drawer(current_active) end
 end
 
 local function update_files()
