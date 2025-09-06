@@ -16,6 +16,7 @@ local function show_drawers()
     in_drawer_view = false
     current_drawer_index = nil
 
+    vim.bo[buf].modifiable = true
     if not buf or not vim.api.nvim_buf_is_valid(buf) then
         buf = vim.api.nvim_create_buf(false, true)
     else
