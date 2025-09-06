@@ -73,10 +73,16 @@ M.get_drawer_files = function (index)
     return drawer:get_drawer_files(index)
 end
 
-M.open_ui = function (ui_module)
-    if ui_module and ui_module.open then ui_module.open() return end
-    local ui = require('ui')
-    return ui.open()
+M.ui = function (ui_module)
+    return ui_module or require('ui')
+end
+
+M.open = function ()
+    M.ui().open()
+end
+
+M.close = function ()
+    M.ui().close()
 end
 
 return M
