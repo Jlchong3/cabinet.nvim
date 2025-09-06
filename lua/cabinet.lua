@@ -29,12 +29,20 @@ end
 ---@return nil
 function Cabinet:add_drawer(name)
     ---@type DrawerInfo
+    if self:drawer_exist(name) then print('Drawer already exists') return end
     local drawer_info = {
         name = name,
         files = {}
     }
 
     table.insert(self.data, drawer_info)
+end
+
+function Cabinet:drawer_exist(name)
+    for _, v in ipairs(self.data) do
+        if v.name == name then return true end
+    end
+    return false
 end
 
 ---@param index integer
@@ -61,6 +69,7 @@ end
 ---@return nil
 function Cabinet:rename_drawer(index, new_name)
     if index < 0 or #self.data < index or not new_name then return end
+    if self:drawer_exist(new_name) then print('Drawer already exists') return end
     self.data[index].name = new_name
 end
 
