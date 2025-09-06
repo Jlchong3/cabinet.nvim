@@ -25,7 +25,7 @@ local function show_drawers()
     local lines = {}
     local drawers = drawer_api.get_drawers()
     for i, d in ipairs(drawers) do
-        table.insert(lines, string.format("%d: %s", i, d.name))
+        table.insert(lines, string.format("%d. %s", i, d.name))
     end
 
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
@@ -41,8 +41,9 @@ local function show_files(drawer_index)
 
     local files = drawer_api.get_drawer_files(drawer_index)
     local lines = {}
-    for _, f in ipairs(files) do
-        table.insert(lines, f.path:gsub("^" .. vim.fn.getcwd() .. "/?", ""))
+    for i, f in ipairs(files) do
+        local relpath = f.path:gsub("^" .. vim.fn.getcwd() .. "/?", "")
+        table.insert(lines, string.format("%d. %s", i, relpath))
     end
 
     vim.bo[buf].modifiable = true
@@ -87,6 +88,7 @@ M.open = function()
             if not in_drawer_view then
                 show_files(cursor_row)
             else
+                M.close()
                 drawer_api.open_file(cursor_row)
             end
         end,
@@ -118,7 +120,7 @@ M.open = function()
         silent = true,
     })
 
-    vim.api.nvim_buf_set_keymap(buf, "n", "dd", "", {
+    vim.api.nvim_buf_set_keymap(buf, "n", "d", "", {
         callback = function()
             local cursor_row = vim.api.nvim_win_get_cursor(0)[1]
             if in_drawer_view then
@@ -132,8 +134,20 @@ M.open = function()
         noremap = true,
         silent = true,
     })
+    vim.api.nvim_buf_set_keymap(buf, "n", "q", "", {
+        callback = function()
+            M.close()
+        end,
+        noremap = true,
+        silent = true,
+    })
+
 
     show_drawers()
+end
+
+M.close = function ()
+    vim.api.nvim_win_close(win, false)
 end
 
 return M
