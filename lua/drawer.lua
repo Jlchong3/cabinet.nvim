@@ -5,7 +5,7 @@ local drawer = Cabinet.new(storage.load() or {})
 
 local M = {}
 
-M.setup = function ()
+M.setup = function (opts)
     vim.api.nvim_create_augroup('drawer', {})
 
     vim.api.nvim_create_autocmd('VimLeave', {
