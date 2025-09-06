@@ -52,6 +52,11 @@ end
 
 --- Open the floating UI
 M.open = function()
+
+    if win and vim.api.nvim_win_is_valid(win) then
+        vim.api.nvim_set_current_win(win)
+    end
+
     local width = math.floor(vim.o.columns * 0.5)
     local height = math.floor(vim.o.lines * 0.5)
     local row = math.floor((vim.o.lines - height) / 2)
