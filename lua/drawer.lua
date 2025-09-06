@@ -38,7 +38,7 @@ end
 M.add_drawer = function (name)
     local drawer_name = name or vim.fn.input('Drawer name: ')
     if drawer_name == nil then return end
-    if drawer_name == '' then drawer_name = 'no name' end
+    if drawer_name == '' then drawer_name = 'default' end
     drawer:add_drawer(drawer_name)
 
     if not drawer.current_drawer then drawer:open_drawer(1) end
