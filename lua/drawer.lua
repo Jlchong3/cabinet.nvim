@@ -3,6 +3,19 @@ local Cabinet = require('cabinet')
 
 local drawer = Cabinet.new(storage.load() or {})
 
+---@class Drawer
+---@field setup fun(opts:table):Drawer
+---@field add_drawer fun(name?:string)
+---@field open_drawer fun(index:integer)
+---@field remove_drawer fun(index:integer)
+---@field add_file fun(drawer_index?:integer)
+---@field open_file fun(index:integer, drawer_index?:integer)
+---@field remove_file fun(index:integer, drawer_index?:integer)
+---@field get_drawers fun():DrawerInfo[]
+---@field get_active_drawer_index fun():integer
+---@field get_drawer_files fun(index?:integer):FileInfo[]
+---@field open fun()
+---@field close fun()
 local M = {}
 
 ---@param opts table
@@ -101,17 +114,12 @@ M.get_drawer_files = function (index)
     return drawer:get_drawer_files(index)
 end
 
----@return any
-M.ui = function (ui_module)
-    return ui_module or require('ui')
-end
-
 M.open = function ()
-    M.ui().open()
+    require('ui').open()
 end
 
 M.close = function ()
-    M.ui().close()
+    require('ui').close()
 end
 
 return M
