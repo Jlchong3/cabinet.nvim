@@ -14,6 +14,8 @@ local in_drawer_view = false
 ---@type integer | nil
 local current_drawer_index = nil
 
+local saved_opts = nil
+
 local ns = vim.api.nvim_create_namespace('drawer_icons')
 
 ---@param basedir string
@@ -147,33 +149,29 @@ local function update_files()
     drawers[current_drawer_index].files = new_list
 end
 
-local function drawer_win(buffer)
+local function drawer_win_config(opts)
     local width = math.floor(vim.o.columns * 0.4)
     local height = math.floor(vim.o.lines * 0.3)
     local row = math.floor((vim.o.lines - height) / 2)
     local col = math.floor((vim.o.columns - width) / 2)
 
-    local window = vim.api.nvim_open_win(buffer, true, {
-        relative = 'editor',
-        width = width,
-        height = height,
-        row = row,
-        col = col,
+    local window_config = {
+        relative = opts.relative or 'editor',
+        width = opts.width or width,
+        height = opts.height or height,
+        row = opts.row or row,
+        col = opts.col or col,
         title = { {'Drawers', 'DrawerTitle'} },
-        style = 'minimal',
-        border = 'single',
-    })
+        style = opts.style or 'minimal',
+        border = opts.border or 'single',
+    }
 
-    vim.api.nvim_set_hl(0, "DrawerTitle", { fg = "#BFDFFF", bold = true })
-    vim.wo[window].number = true
-    vim.bo[buffer].bufhidden = 'wipe'
-    vim.bo[buffer].filetype = 'drawer'
-
-    return window
+    return window_config
 end
 
 --- Open the floating UI
-M.open = function()
+M.open = function(opts)
+    saved_opts = opts or {}
 
     if vim.api.nvim_win_is_valid(win) then
         vim.api.nvim_set_current_win(win)
@@ -184,7 +182,12 @@ M.open = function()
         buf = vim.api.nvim_create_buf(false, true)
     end
 
-    win = drawer_win(buf)
+    win = vim.api.nvim_open_win(buf, true, drawer_win_config(saved_opts))
+
+    vim.api.nvim_set_hl(0, "DrawerTitle", { fg = "#BFDFFF", bold = true })
+    vim.wo[win].number = true
+    vim.bo[buf].bufhidden = 'wipe'
+    vim.bo[buf].filetype = 'drawer'
 
     -- Drawer selection keys
     vim.api.nvim_buf_set_keymap(buf, 'n', '<CR>', '', {

@@ -14,7 +14,7 @@ local drawer = Cabinet.new(storage.load() or {})
 ---@field get_drawers fun():DrawerInfo[]
 ---@field get_active_drawer_index fun():integer
 ---@field get_drawer_files fun(index?:integer):FileInfo[]
----@field open fun()
+---@field open fun(opts:vim.api.keyset.win_config?)
 ---@field close fun()
 local M = {}
 
@@ -114,8 +114,9 @@ M.get_drawer_files = function (index)
     return drawer:get_drawer_files(index)
 end
 
-M.open = function ()
-    require('ui').open()
+---@param opts vim.api.keyset.win_config?
+M.open = function (opts)
+    require('ui').open(opts)
 end
 
 M.close = function ()
