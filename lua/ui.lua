@@ -16,8 +16,6 @@ local current_drawer_index = nil
 
 local saved_opts = nil
 
-local ns = vim.api.nvim_create_namespace('drawer_icons')
-
 ---@param basedir string
 ---@param path string
 ---@return string
@@ -34,7 +32,6 @@ local function show_drawers()
         buf = vim.api.nvim_create_buf(false, true)
     else
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
-        vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
     end
 
     local lines = {}
@@ -44,26 +41,17 @@ local function show_drawers()
     end
 
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-
-    for i, _ in ipairs(drawers) do
-        vim.api.nvim_buf_set_extmark(buf, ns, i - 1, 0, {
-            virt_text = { {"󰪶 ", "DrawerTitle"} },
-            virt_text_pos = 'inline',
-        })
-    end
 end
 
 --- Refresh buffer with files of the current drawer
 local function show_files(drawer_index)
     in_drawer_view = true
     current_drawer_index = drawer_index
-    vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
 
     if not vim.api.nvim_buf_is_valid(buf) then
         buf = vim.api.nvim_create_buf(false, true)
     else
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
-        vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
     end
 
     local files = drawer_api.get_drawer_files(drawer_index)
@@ -114,7 +102,7 @@ local function update_drawers()
         added.files = d.files
     end
 
-    if current_active <= #new_list then drawer_api.open_drawer(current_active) end
+    if current_active and current_active <= #new_list then drawer_api.open_drawer(current_active) end
 end
 
 local function update_files()
@@ -139,7 +127,7 @@ local function update_files()
             else
                 table.insert(new_list, {
                     path = fullpath,
-                    cursor_pos = {1, 0}, -- default position
+                    cursor_pos = {1, 0},
                 })
             end
         end
