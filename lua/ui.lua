@@ -238,6 +238,13 @@ M.open = function(opts)
         end
     })
 
+    vim.api.nvim_create_autocmd('VimResized', {
+        buffer = buf,
+        callback = function()
+            vim.api.nvim_win_set_config(win, drawer_win_config(saved_opts))
+            vim.wo[win].number = true
+        end
+    })
 
     show_drawers()
 end
