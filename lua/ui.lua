@@ -2,13 +2,19 @@ local drawer_api = require('drawer')
 
 local M = {}
 
-local state = {
-    buf = nil,
-    win = nil,
-    in_drawer_view = false,
-    current_drawer_index = nil,
-    ns = vim.api.nvim_create_namespace('drawer_icons')
-}
+---@type integer
+local buf = -1
+
+---@type integer
+local win = -1
+
+---@type boolean
+local in_drawer_view = false
+
+---@type integer | nil
+local current_drawer_index = nil
+
+local ns = vim.api.nvim_create_namespace('drawer_icons')
 
 ---@param basedir string
 ---@param path string
@@ -20,14 +26,14 @@ end
 
 --- Refresh buffer with a list of drawers
 local function show_drawers()
-    state.in_drawer_view = false
-    state.current_drawer_index = nil
+    in_drawer_view = false
+    current_drawer_index = nil
 
-    if not state.buf or not vim.api.nvim_buf_is_valid(state.buf) then
-        state.buf = vim.api.nvim_create_buf(false, true)
+    if not vim.api.nvim_buf_is_valid(buf) then
+        buf = vim.api.nvim_create_buf(false, true)
     else
-        vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, {})
-        vim.api.nvim_buf_clear_namespace(state.buf, state.ns, 0, -1) -- clear old icons
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
+        vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1) -- clear old icons
     end
 
     local lines = {}
@@ -35,9 +41,11 @@ local function show_drawers()
     for i, d in ipairs(drawers) do
         table.insert(lines, d.name)
     end
+
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+
     for i, _ in ipairs(drawers) do
-        vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
-        vim.api.nvim_buf_set_extmark(state.buf, state.ns, i - 1, 0, {
+        vim.api.nvim_buf_set_extmark(buf, ns, i - 1, 0, {
             virt_text = { {"󰪶 ", "DrawerTitle"} },
             virt_text_pos = 'inline',
         })
@@ -46,10 +54,11 @@ end
 
 --- Refresh buffer with files of the current drawer
 local function show_files(drawer_index)
-    state.in_drawer_view = true
-    state.current_drawer_index = drawer_index
+    in_drawer_view = true
+    current_drawer_index = drawer_index
+    vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
 
-    if not state.buf or not vim.api.nvim_buf_is_valid(state.buf) then return end
+    if not buf or not vim.api.nvim_buf_is_valid(buf) then return end
 
     local files = drawer_api.get_drawer_files(drawer_index)
     local lines = {}
@@ -58,11 +67,11 @@ local function show_files(drawer_index)
         table.insert(lines, relpath)
     end
 
-    vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 end
 
 local function update_drawers()
-    local lines = vim.api.nvim_buf_get_lines(state.buf, 0, -1, false)
+    local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
     local old_drawers = drawer_api.get_drawers()
 
     local old_map = {}
@@ -103,8 +112,8 @@ local function update_drawers()
 end
 
 local function update_files()
-    local drawer_files = drawer_api.get_drawer_files(state.current_drawer_index)
-    local buf_lines = vim.api.nvim_buf_get_lines(state.buf, 0, -1, false)
+    local drawer_files = drawer_api.get_drawer_files(current_drawer_index)
+    local buf_lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 
     local old_files_map = {}
     for _, file_info in ipairs(drawer_files) do
@@ -131,27 +140,16 @@ local function update_files()
     end
 
     local drawers = drawer_api.get_drawers()
-    drawers[state.current_drawer_index].files = new_list
+    drawers[current_drawer_index].files = new_list
 end
 
---- Open the floating UI
-M.open = function()
-
-    if state.win and vim.api.nvim_win_is_valid(state.win) then
-        vim.api.nvim_set_current_win(state.win)
-        return
-    end
-
+local function drawer_win(buffer)
     local width = math.floor(vim.o.columns * 0.4)
     local height = math.floor(vim.o.lines * 0.3)
     local row = math.floor((vim.o.lines - height) / 2)
     local col = math.floor((vim.o.columns - width) / 2)
 
-    if not state.buf or not vim.api.nvim_buf_is_valid(state.buf) then
-        state.buf = vim.api.nvim_create_buf(false, true)
-    end
-
-    state.win = vim.api.nvim_open_win(state.buf, true, {
+    local window = vim.api.nvim_open_win(buffer, true, {
         relative = 'editor',
         width = width,
         height = height,
@@ -163,37 +161,56 @@ M.open = function()
     })
 
     vim.api.nvim_set_hl(0, "DrawerTitle", { fg = "#BFDFFF", bold = true })
-    vim.wo[state.win].number = true
-    vim.bo[state.buf].bufhidden = 'wipe'
-    vim.bo[state.buf].filetype = 'drawer'
+    vim.wo[window].number = true
+    vim.bo[buffer].bufhidden = 'wipe'
+    vim.bo[buffer].filetype = 'drawer'
+
+    return window
+end
+
+--- Open the floating UI
+M.open = function()
+
+    if vim.api.nvim_win_is_valid(win) then
+        vim.api.nvim_set_current_win(win)
+        return
+    end
+
+    if not vim.api.nvim_buf_is_valid(buf) then
+        buf = vim.api.nvim_create_buf(false, true)
+    end
+
+    win = drawer_win(buf)
 
     -- Drawer selection keys
-    vim.api.nvim_buf_set_keymap(state.buf, 'n', '<CR>', '', {
+    vim.api.nvim_buf_set_keymap(buf, 'n', '<CR>', '', {
         callback = function()
             local cursor_row = vim.api.nvim_win_get_cursor(0)[1]
-            if not state.in_drawer_view then
+            if not in_drawer_view then
                 update_drawers()
                 show_files(cursor_row)
             else
                 M.close()
-                drawer_api.open_file(cursor_row)
+                drawer_api.open_file(cursor_row, current_drawer_index)
             end
         end,
         noremap = true,
         silent = true,
     })
 
-    vim.api.nvim_buf_set_keymap(state.buf, 'n', '-', '', {
+    vim.api.nvim_buf_set_keymap(buf, 'n', '-', '', {
         callback = function ()
-            update_files()
-            show_drawers()
+            if in_drawer_view then
+                update_files()
+                show_drawers()
+            end
         end,
         noremap = true,
         silent = true,
     })
 
 
-    vim.api.nvim_buf_set_keymap(state.buf, 'n', 'q', '', {
+    vim.api.nvim_buf_set_keymap(buf, 'n', 'q', '', {
         callback = function()
             M.close()
         end,
@@ -201,17 +218,33 @@ M.open = function()
         silent = true,
     })
 
+    vim.api.nvim_create_autocmd('InsertLeave', {
+        buffer = buf,
+        callback = function()
+            if not in_drawer_view then
+                update_drawers()
+                show_drawers()
+            else
+                update_files()
+                show_files(current_drawer_index)
+            end
+        end
+    })
+
 
     show_drawers()
 end
 
 M.close = function ()
-    if not state.in_drawer_view then
+    if not in_drawer_view then
         update_drawers()
     else
         update_files()
     end
-    vim.api.nvim_win_close(state.win, false)
+
+    vim.api.nvim_win_close(win, false)
 end
+
+M.open()
 
 return M

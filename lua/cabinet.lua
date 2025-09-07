@@ -77,7 +77,7 @@ function Cabinet:get_drawers()
     return self.data
 end
 
----@param index integer?
+---@param index integer
 ---@return FileInfo[]
 function Cabinet:get_drawer_files(index)
     index = index or self.current_drawer
@@ -89,12 +89,12 @@ end
 
 ---@param index integer
 ---@return FileInfo|nil
-function Cabinet:get_file(index)
-    return self:get_drawer_files()[index]
+function Cabinet:get_file(index, drawer)
+    return self:get_drawer_files(drawer)[index]
 end
 
 ---@return nil
-function Cabinet:add_file()
+function Cabinet:add_file(drawer)
     local current_file = vim.api.nvim_buf_get_name(0)
     if current_file == '' then return end
 
@@ -104,23 +104,24 @@ function Cabinet:add_file()
         cursor_pos = vim.api.nvim_win_get_cursor(0)
     }
 
-    table.insert(self:get_drawer_files(), file_info)
+    table.insert(self:get_drawer_files(drawer), file_info)
 end
 
 ---@param index integer
 ---@return nil
-function Cabinet:remove_file(index)
-    if index < 0 and #self:get_drawer_files() < index then return end
-    table.remove(self:get_drawer_files(), index)
+function Cabinet:remove_file(index, drawer)
+    if index < 0 and #self:get_drawer_files(drawer) < index then return end
+    table.remove(self:get_drawer_files(drawer), index)
 end
 
+---@param drawer integer
 ---@param index integer
 ---@return nil
-function Cabinet:open_file(index)
-    if not self.current_drawer then return end
-    if index < 0 or #self:get_drawer_files() < index then return end
+function Cabinet:open_file(index, drawer)
+    if not drawer then return end
+    if index < 0 or #self:get_drawer_files(drawer) < index then return end
 
-    local file_info = assert(self:get_file(index))
+    local file_info = assert(self:get_file(index, drawer))
 
     if file_info.path == vim.api.nvim_buf_get_name(0) then return end
     vim.cmd.edit(file_info.path)

@@ -19,12 +19,12 @@ M.setup = function (opts)
         group = 'drawer',
         callback = function ()
             if drawer:is_empty() then return end
-            if #drawer:get_drawer_files() == 0 then return end
+            if #drawer:get_drawer_files(drawer.current_drawer) == 0 then return end
 
             local filepath = vim.api.nvim_buf_get_name(0)
             if filepath == '' then return end
 
-            for _, file_info in ipairs(drawer:get_drawer_files()) do
+            for _, file_info in ipairs(drawer:get_drawer_files(drawer.current_drawer)) do
                 if file_info.path == filepath then
                     file_info.cursor_pos = vim.api.nvim_win_get_cursor(0)
                     break
@@ -52,17 +52,20 @@ M.remove_drawer = function (index)
     drawer:remove_drawer(index)
 end
 
-M.add_file = function ()
-    if not drawer.current_drawer then M.add_drawer() end
+M.add_file = function (drawer_index)
+    drawer_index = drawer_index or drawer.current_drawer
+    if not drawer_index then M.add_drawer() end
     drawer:add_file()
 end
 
-M.open_file = function (index)
-    drawer:open_file(index)
+M.open_file = function (index, drawer_index)
+    drawer_index = drawer_index or drawer.current_drawer
+    drawer:open_file(index, drawer_index)
 end
 
-M.remove_file = function (index)
-    drawer:remove_file(index)
+M.remove_file = function (index, drawer_index)
+    drawer_index = drawer_index or drawer.current_drawer
+    drawer:remove_file(index, drawer_index)
 end
 
 M.get_drawers = function ()
