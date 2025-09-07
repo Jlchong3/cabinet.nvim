@@ -38,6 +38,7 @@ function Cabinet:add_drawer(name)
     table.insert(self.data, drawer_info)
 end
 
+
 function Cabinet:drawer_exist(name)
     for _, v in ipairs(self.data) do
         if v.name == name then return true end
@@ -93,6 +94,7 @@ function Cabinet:get_file(index, drawer)
     return self:get_drawer_files(drawer)[index]
 end
 
+---@param drawer integer
 ---@return nil
 function Cabinet:add_file(drawer)
     local current_file = vim.api.nvim_buf_get_name(0)
@@ -108,6 +110,7 @@ function Cabinet:add_file(drawer)
 end
 
 ---@param index integer
+---@param drawer integer
 ---@return nil
 function Cabinet:remove_file(index, drawer)
     if index < 0 and #self:get_drawer_files(drawer) < index then return end

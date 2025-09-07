@@ -24,7 +24,6 @@ local function get_relative_path(basedir, path)
     return relpath
 end
 
---- Refresh buffer with a list of drawers
 local function show_drawers()
     in_drawer_view = false
     current_drawer_index = nil
@@ -33,12 +32,12 @@ local function show_drawers()
         buf = vim.api.nvim_create_buf(false, true)
     else
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
-        vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1) -- clear old icons
+        vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
     end
 
     local lines = {}
     local drawers = drawer_api.get_drawers()
-    for i, d in ipairs(drawers) do
+    for _, d in ipairs(drawers) do
         table.insert(lines, d.name)
     end
 
@@ -58,7 +57,12 @@ local function show_files(drawer_index)
     current_drawer_index = drawer_index
     vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
 
-    if not buf or not vim.api.nvim_buf_is_valid(buf) then return end
+    if not vim.api.nvim_buf_is_valid(buf) then
+        buf = vim.api.nvim_create_buf(false, true)
+    else
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
+        vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
+    end
 
     local files = drawer_api.get_drawer_files(drawer_index)
     local lines = {}
@@ -244,7 +248,5 @@ M.close = function ()
 
     vim.api.nvim_win_close(win, false)
 end
-
-M.open()
 
 return M

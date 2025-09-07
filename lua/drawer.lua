@@ -5,6 +5,8 @@ local drawer = Cabinet.new(storage.load() or {})
 
 local M = {}
 
+---@param opts table
+---@return table
 M.setup = function (opts)
     vim.api.nvim_create_augroup('drawer', {})
 
@@ -32,9 +34,11 @@ M.setup = function (opts)
             end
         end
     })
+
     return M
 end
 
+---@param name string?
 M.add_drawer = function (name)
     local drawer_name = name or vim.fn.input('Drawer name: ')
     if drawer_name == nil then return end
@@ -44,42 +48,60 @@ M.add_drawer = function (name)
     if not drawer.current_drawer then drawer:open_drawer(1) end
 end
 
+---@param index integer
 M.open_drawer = function (index)
     drawer:open_drawer(index)
 end
 
+---@param index integer
 M.remove_drawer = function (index)
     drawer:remove_drawer(index)
 end
 
+---@param drawer_index integer?
 M.add_file = function (drawer_index)
     drawer_index = drawer_index or drawer.current_drawer
+
     if not drawer_index then M.add_drawer() end
-    drawer:add_file()
+    if drawer_index > #drawer:get_drawers() then return end
+
+    drawer:add_file(assert(drawer_index))
 end
 
+---@param index integer
+---@param drawer_index integer?
 M.open_file = function (index, drawer_index)
     drawer_index = drawer_index or drawer.current_drawer
+    if not drawer_index or drawer_index > #drawer:get_drawers() then return end
+
     drawer:open_file(index, drawer_index)
 end
 
+---@param index integer
+---@param drawer_index integer?
 M.remove_file = function (index, drawer_index)
     drawer_index = drawer_index or drawer.current_drawer
+    if not drawer_index or drawer_index > #drawer:get_drawers() then return end
+
     drawer:remove_file(index, drawer_index)
 end
 
+---@return DrawerInfo[]
 M.get_drawers = function ()
     return drawer:get_drawers()
 end
 
+---@return integer
 M.get_active_drawer_index = function ()
     return drawer.current_drawer
 end
 
+---@return FileInfo[]
 M.get_drawer_files = function (index)
     return drawer:get_drawer_files(index)
 end
 
+---@return any
 M.ui = function (ui_module)
     return ui_module or require('ui')
 end
