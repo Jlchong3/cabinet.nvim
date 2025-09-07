@@ -1,4 +1,4 @@
-local drawer_api = require("drawer")
+local drawer_api = require('drawer')
 
 local M = {}
 
@@ -7,6 +7,7 @@ local state = {
     win = nil,
     in_drawer_view = false,
     current_drawer_index = nil,
+    ns = vim.api.nvim_create_namespace('drawer_icons')
 }
 
 ---@param basedir string
@@ -26,15 +27,21 @@ local function show_drawers()
         state.buf = vim.api.nvim_create_buf(false, true)
     else
         vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, {})
+        vim.api.nvim_buf_clear_namespace(state.buf, state.ns, 0, -1) -- clear old icons
     end
 
     local lines = {}
     local drawers = drawer_api.get_drawers()
-    for _, d in ipairs(drawers) do
+    for i, d in ipairs(drawers) do
         table.insert(lines, d.name)
     end
-
-    vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
+    for i, _ in ipairs(drawers) do
+        vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
+        vim.api.nvim_buf_set_extmark(state.buf, state.ns, i - 1, 0, {
+            virt_text = { {"󰪶 ", "DrawerTitle"} },
+            virt_text_pos = 'inline',
+        })
+    end
 end
 
 --- Refresh buffer with files of the current drawer
@@ -135,8 +142,8 @@ M.open = function()
         return
     end
 
-    local width = math.floor(vim.o.columns * 0.5)
-    local height = math.floor(vim.o.lines * 0.5)
+    local width = math.floor(vim.o.columns * 0.4)
+    local height = math.floor(vim.o.lines * 0.3)
     local row = math.floor((vim.o.lines - height) / 2)
     local col = math.floor((vim.o.columns - width) / 2)
 
@@ -145,15 +152,18 @@ M.open = function()
     end
 
     state.win = vim.api.nvim_open_win(state.buf, true, {
-        relative = "editor",
+        relative = 'editor',
         width = width,
         height = height,
         row = row,
         col = col,
-        style = "minimal",
-        border = "rounded",
+        title = { {'Drawers', 'DrawerTitle'} },
+        style = 'minimal',
+        border = 'single',
     })
 
+    vim.api.nvim_set_hl(0, "DrawerTitle", { fg = "#BFDFFF", bold = true })
+    vim.wo[state.win].number = true
     vim.bo[state.buf].bufhidden = 'wipe'
     vim.bo[state.buf].filetype = 'drawer'
 
