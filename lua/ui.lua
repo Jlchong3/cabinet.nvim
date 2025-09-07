@@ -228,6 +228,7 @@ M.open = function(opts)
     vim.api.nvim_create_autocmd('InsertLeave', {
         buffer = buf,
         callback = function()
+            local cursor_pos = vim.api.nvim_win_get_cursor(win)
             if not in_drawer_view then
                 update_drawers()
                 show_drawers()
@@ -235,6 +236,7 @@ M.open = function(opts)
                 update_files()
                 show_files(current_drawer_index)
             end
+            vim.api.nvim_win_set_cursor(win, cursor_pos)
         end
     })
 
