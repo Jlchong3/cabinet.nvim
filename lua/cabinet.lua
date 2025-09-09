@@ -23,7 +23,9 @@ local drawer_autocmds = function ()
     vim.api.nvim_create_autocmd('BufLeave', {
         group = 'drawer',
         callback = function ()
-            if #cabinet.drawer_order == 0 then return end
+            local current = cabinet.current_drawer
+            if not current or current <= 0 or current > #cabinet.drawer_order then return end
+
             local files = assert(M.get_drawer_files(cabinet.current_drawer))
             if #files == 0 then return end
 
