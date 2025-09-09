@@ -79,7 +79,7 @@ M.save = function(tbl)
     local filename = get_data_file_name(vim.fn.getcwd()) -- filename is based on cwd
     local data_file_path = create_file_path(M.data_path, filename)
 
-    if is_empty(tbl) and file_exists(data_file_path) then return end
+    if is_empty(tbl) and not file_exists(data_file_path) then return end
 
     local f = assert(io.open(data_file_path, 'w'))
 

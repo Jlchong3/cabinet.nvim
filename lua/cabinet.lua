@@ -14,7 +14,7 @@ local drawer_autocmds = function ()
     vim.api.nvim_create_autocmd('VimLeave', {
         group = 'drawer',
         callback = function ()
-                storage.save(cabinet)
+            storage.save(cabinet)
         end
     })
 
