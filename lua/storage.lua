@@ -1,5 +1,4 @@
 ---@class Storage
----@field data_path string
 ---@field save fun(tbl:table)
 ---@field load fun(): table|nil
 local M = {}
