@@ -1,3 +1,3 @@
-# Drawer.nvim
+# Cabinet.nvim
 
 WIP

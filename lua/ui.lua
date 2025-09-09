@@ -1,60 +1,47 @@
-local drawer_api = require('drawer')
+local cabinet = require('cabinet')
 
 local M = {}
 
----@type integer
 local buf = -1
-
----@type integer
 local win = -1
-
----@type boolean
 local in_drawer_view = false
-
----@type integer | nil
 local current_drawer_index = nil
 
 local saved_opts = nil
 
----@param basedir string
----@param path string
----@return string
 local function get_relative_path(basedir, path)
     local relpath = path:gsub('^' .. basedir .. '/?', '')
     return relpath
 end
 
-local function show_drawers()
+local function reset_buffer()
+    if not vim.api.nvim_buf_is_valid(buf) then
+        buf = vim.api.nvim_create_buf(false, true)
+    else
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
+    end
+
+    vim.bo[buf].bufhidden = 'wipe'
+    vim.bo[buf].filetype = 'drawer'
+end
+
+local function buf_set_drawers()
     in_drawer_view = false
     current_drawer_index = nil
 
-    if not vim.api.nvim_buf_is_valid(buf) then
-        buf = vim.api.nvim_create_buf(false, true)
-    else
-        vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
-    end
+    reset_buffer()
 
-    local lines = {}
-    local drawers = drawer_api.get_drawers()
-    for _, d in ipairs(drawers) do
-        table.insert(lines, d.name)
-    end
-
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, cabinet.get_drawer_order())
 end
 
 --- Refresh buffer with files of the current drawer
-local function show_files(drawer_index)
+local function buf_set_files(drawer_index)
     in_drawer_view = true
     current_drawer_index = drawer_index
 
-    if not vim.api.nvim_buf_is_valid(buf) then
-        buf = vim.api.nvim_create_buf(false, true)
-    else
-        vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
-    end
+    reset_buffer()
 
-    local files = drawer_api.get_drawer_files(drawer_index)
+    local files = assert(cabinet.get_drawer_files(drawer_index))
     local lines = {}
     for _, f in ipairs(files) do
         local relpath = get_relative_path(vim.fn.getcwd(), f.path)
@@ -66,47 +53,34 @@ end
 
 local function update_drawers()
     local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-    local old_drawers = drawer_api.get_drawers()
+    local drawers = cabinet.get_drawers()
+    local drawer_order = cabinet.get_drawer_order()
 
-    local old_map = {}
-    for _, d in ipairs(old_drawers) do
-        old_map[d.name] = d
-    end
+    local seen = {}
 
-    -- Build the new list in buffer order
-    local new_list = {}
-    for _, name in ipairs(lines) do
+    for i, name in ipairs(lines) do
         name = vim.trim(name)
         if name ~= "" then
-            if old_map[name] then
-                table.insert(new_list, old_map[name])
-                old_map[name] = nil
+            seen[name] = true
+
+            if drawers[name] then
+                drawer_order[i] = name
             else
-                table.insert(new_list, {
-                    name = name,
-                    files = {},
-                })
+                cabinet.add_drawer(name)
             end
         end
     end
 
-    local drawers = drawer_api.get_drawers()
-    local current_active = drawer_api.get_active_drawer_index()
-    for i = #drawers, 1, -1 do
-        drawer_api.remove_drawer(i)
+    for drawer, _ in pairs(drawers) do
+        if not seen[drawer] then
+            cabinet.remove_drawer_by_name(drawer)
+        end
     end
 
-    for _, d in ipairs(new_list) do
-        drawer_api.add_drawer(d.name)
-        local added = drawer_api.get_drawers()[#drawer_api.get_drawers()]
-        added.files = d.files
-    end
-
-    if current_active and current_active <= #new_list then drawer_api.open_drawer(current_active) end
 end
 
 local function update_files()
-    local drawer_files = drawer_api.get_drawer_files(current_drawer_index)
+    local drawer_files = assert(cabinet.get_drawer_files(current_drawer_index))
     local buf_lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 
     local old_files_map = {}
@@ -133,8 +107,9 @@ local function update_files()
         end
     end
 
-    local drawers = drawer_api.get_drawers()
-    drawers[current_drawer_index].files = new_list
+    local drawer_name = cabinet.get_drawer_order()[current_drawer_index]
+    local drawers = cabinet.get_drawers()
+    drawers[drawer_name] = new_list
 end
 
 local function drawer_win_config(opts)
@@ -143,16 +118,16 @@ local function drawer_win_config(opts)
     local row = math.floor((vim.o.lines - height) / 2)
     local col = math.floor((vim.o.columns - width) / 2)
 
-    local window_config = {
-        relative = opts.relative or 'editor',
-        width = opts.width or width,
-        height = opts.height or height,
-        row = opts.row or row,
-        col = opts.col or col,
+    local window_config = vim.tbl_deep_extend('force', {
+        relative = 'editor',
+        width = width,
+        height = height,
+        row = row,
+        col = col,
         title = { {'Drawers', 'DrawerTitle'} },
-        style = opts.style or 'minimal',
-        border = opts.border or 'single',
-    }
+        style = 'minimal',
+        border = 'single',
+    }, opts)
 
     return window_config
 end
@@ -166,16 +141,12 @@ M.open = function(opts)
         return
     end
 
-    if not vim.api.nvim_buf_is_valid(buf) then
-        buf = vim.api.nvim_create_buf(false, true)
-    end
+    buf_set_drawers()
 
     win = vim.api.nvim_open_win(buf, true, drawer_win_config(saved_opts))
 
     vim.api.nvim_set_hl(0, "DrawerTitle", { fg = "#BFDFFF", bold = true })
     vim.wo[win].number = true
-    vim.bo[buf].bufhidden = 'wipe'
-    vim.bo[buf].filetype = 'drawer'
 
     -- Drawer selection keys
     vim.api.nvim_buf_set_keymap(buf, 'n', '<CR>', '', {
@@ -183,10 +154,10 @@ M.open = function(opts)
             local cursor_row = vim.api.nvim_win_get_cursor(0)[1]
             if not in_drawer_view then
                 update_drawers()
-                show_files(cursor_row)
+                buf_set_files(cursor_row)
             else
                 M.close()
-                drawer_api.open_file(cursor_row, current_drawer_index)
+                cabinet.open_file(cursor_row, current_drawer_index)
             end
         end,
         noremap = true,
@@ -197,7 +168,7 @@ M.open = function(opts)
         callback = function ()
             if in_drawer_view then
                 update_files()
-                show_drawers()
+                buf_set_drawers()
             end
         end,
         noremap = true,
@@ -219,10 +190,10 @@ M.open = function(opts)
             local cursor_pos = vim.api.nvim_win_get_cursor(win)
             if not in_drawer_view then
                 update_drawers()
-                show_drawers()
+                buf_set_drawers()
             else
                 update_files()
-                show_files(current_drawer_index)
+                buf_set_files(current_drawer_index)
             end
             vim.api.nvim_win_set_cursor(win, cursor_pos)
         end
@@ -235,9 +206,8 @@ M.open = function(opts)
             vim.wo[win].number = true
         end
     })
-
-    show_drawers()
 end
+
 
 M.close = function ()
     if not in_drawer_view then
@@ -246,7 +216,12 @@ M.close = function ()
         update_files()
     end
 
-    vim.api.nvim_win_close(win, false)
+    if vim.api.nvim_win_is_valid(win) then
+        vim.api.nvim_win_close(win, false)
+    end
+
 end
+
+M.open()
 
 return M

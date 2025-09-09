@@ -1,5 +1,4 @@
 ---@class Storage
----@field data_path string
 ---@field save fun(tbl:table)
 ---@field load fun(): table|nil
 local M = {}
@@ -67,7 +66,11 @@ local function serialize(tbl)
 end
 
 
-M.data_path = string.format('%s/drawer', vim.fn.stdpath('data'))
+M.data_path = string.format('%s/cabinet', vim.fn.stdpath('data'))
+
+local function is_empty(tbl)
+    return tbl.drawer_order == nil or #tbl.drawer_order == 0
+end
 
 ---@param tbl table
 M.save = function(tbl)
@@ -76,7 +79,7 @@ M.save = function(tbl)
     local filename = get_data_file_name(vim.fn.getcwd()) -- filename is based on cwd
     local data_file_path = create_file_path(M.data_path, filename)
 
-    if not file_exists(data_file_path) and #tbl == 0 then return end
+    if is_empty(tbl) and not file_exists(data_file_path) then return end
 
     local f = assert(io.open(data_file_path, 'w'))
 
