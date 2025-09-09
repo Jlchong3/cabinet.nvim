@@ -6,17 +6,15 @@ end
 
 local cabinet = load_cabinet()
 
-
 local M = {}
 
 local drawer_autocmds = function ()
     vim.api.nvim_create_augroup('drawer', { clear = true })
+
     vim.api.nvim_create_autocmd('VimLeave', {
         group = 'drawer',
         callback = function ()
-            if #cabinet.drawer_order ~= 0 then
                 storage.save(cabinet)
-            end
         end
     })
 
