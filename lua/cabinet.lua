@@ -69,6 +69,8 @@ M.add_drawer = function(drawer)
     cabinet.drawers[drawer] = { }
     table.insert(cabinet.drawer_order, drawer)
 
+    if not cabinet.current_drawer then cabinet.current_drawer = #cabinet.drawer_order end
+
     return drawer
 end
 
