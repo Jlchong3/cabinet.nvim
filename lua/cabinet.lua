@@ -4,22 +4,42 @@ local load_cabinet = function()
     return storage.load() or { current_drawer = nil, drawers = {}, drawer_order = {} }
 end
 
+local cabinet = load_cabinet()
+
+
+local M = {}
+
 local drawer_autocmds = function ()
     vim.api.nvim_create_augroup('drawer', { clear = true })
     vim.api.nvim_create_autocmd('VimLeave', {
         group = 'drawer',
         callback = function ()
+            if #cabinet.drawer_order ~= 0 then
+                storage.save(cabinet)
+            end
         end
     })
 
     vim.api.nvim_create_autocmd('BufLeave', {
         group = 'drawer',
         callback = function ()
+            if #cabinet.drawer_order == 0 then return end
+            local files = assert(M.get_drawer_files(cabinet.current_drawer))
+            if #files == 0 then return end
+
+            local filepath = vim.api.nvim_buf_get_name(0)
+            if filepath == '' then return end
+
+            for _, file_info in ipairs(files) do
+                if file_info.path == filepath then
+                    file_info.cursor_pos = vim.api.nvim_win_get_cursor(0)
+                    break
+                end
+            end
         end
     })
 end
 
-local cabinet = load_cabinet()
 
 local function get_drawer_pos(drawer)
     for i, drawer_key in ipairs(cabinet.drawer_order) do
@@ -28,8 +48,6 @@ local function get_drawer_pos(drawer)
         end
     end
 end
-
-local M = {}
 
 M.setup = function (opts)
     drawer_autocmds()
@@ -42,8 +60,16 @@ M.get_current_drawer = function ()
 end
 
 M.add_drawer = function(drawer)
+    drawer = drawer or vim.fn.input('Drawer name: ')
+
+    if drawer == nil then return end
+    if drawer == '' then drawer = 'default' end
+    if cabinet.drawers[drawer] then print('Drawer already exists') return end
+
     cabinet.drawers[drawer] = { }
     table.insert(cabinet.drawer_order, drawer)
+
+    return drawer
 end
 
 M.drawer_exist = function(drawer)
@@ -131,15 +157,24 @@ end
 
 M.add_file = function(drawer_pos)
     drawer_pos = drawer_pos or cabinet.current_drawer
-    if not drawer_pos then return end
-    if drawer_pos <= 0 or drawer_pos > #cabinet.drawer_order then return end
 
-    local drawer = cabinet.drawer_order[drawer_pos]
+    local drawer
+    if not drawer_pos then
+        M.add_drawer()
+        cabinet.current_drawer = #cabinet.drawer_order
+        drawer = cabinet.drawer_order[cabinet.current_drawer]
+    elseif 0 < drawer_pos and drawer_pos <= #cabinet.drawer_order then
+        drawer = cabinet.drawer_order[drawer_pos]
+    else
+        return
+    end
 
     table.insert(cabinet.drawers[drawer], {
         path = vim.api.nvim_buf_get_name(0),
         cursor_pos = vim.api.nvim_win_get_cursor(0)
     })
+
+    return #cabinet.drawers[drawer]
 end
 
 M.remove_file = function(drawer_pos, file_index)

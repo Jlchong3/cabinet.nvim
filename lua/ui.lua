@@ -25,7 +25,7 @@ local function reset_buffer()
     vim.bo[buf].filetype = 'drawer'
 end
 
-local function show_drawers()
+local function buf_set_drawers()
     in_drawer_view = false
     current_drawer_index = nil
 
@@ -35,7 +35,7 @@ local function show_drawers()
 end
 
 --- Refresh buffer with files of the current drawer
-local function show_files(drawer_index)
+local function buf_set_files(drawer_index)
     in_drawer_view = true
     current_drawer_index = drawer_index
 
@@ -141,9 +141,9 @@ M.open = function(opts)
         return
     end
 
-    win = vim.api.nvim_open_win(buf, true, drawer_win_config(saved_opts))
+    buf_set_drawers()
 
-    show_drawers()
+    win = vim.api.nvim_open_win(buf, true, drawer_win_config(saved_opts))
 
     vim.api.nvim_set_hl(0, "DrawerTitle", { fg = "#BFDFFF", bold = true })
     vim.wo[win].number = true
@@ -154,7 +154,7 @@ M.open = function(opts)
             local cursor_row = vim.api.nvim_win_get_cursor(0)[1]
             if not in_drawer_view then
                 update_drawers()
-                show_files(cursor_row)
+                buf_set_files(cursor_row)
             else
                 M.close()
                 cabinet.open_file(current_drawer_index, cursor_row)
@@ -168,7 +168,7 @@ M.open = function(opts)
         callback = function ()
             if in_drawer_view then
                 update_files()
-                show_drawers()
+                buf_set_drawers()
             end
         end,
         noremap = true,
@@ -190,10 +190,10 @@ M.open = function(opts)
             local cursor_pos = vim.api.nvim_win_get_cursor(win)
             if not in_drawer_view then
                 update_drawers()
-                show_drawers()
+                buf_set_drawers()
             else
                 update_files()
-                show_files(current_drawer_index)
+                buf_set_files(current_drawer_index)
             end
             vim.api.nvim_win_set_cursor(win, cursor_pos)
         end
@@ -221,5 +221,7 @@ M.close = function ()
     end
 
 end
+
+M.open()
 
 return M
