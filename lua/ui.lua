@@ -157,7 +157,7 @@ M.open = function(opts)
                 buf_set_files(cursor_row)
             else
                 M.close()
-                cabinet.open_file(current_drawer_index, cursor_row)
+                cabinet.open_file(cursor_row, current_drawer_index)
             end
         end,
         noremap = true,

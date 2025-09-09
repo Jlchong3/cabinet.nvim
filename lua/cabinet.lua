@@ -179,7 +179,7 @@ M.add_file = function(drawer_pos)
     return #cabinet.drawers[drawer]
 end
 
-M.remove_file = function(drawer_pos, file_index)
+M.remove_file = function(file_index, drawer_pos)
     if drawer_pos <= 0 or drawer_pos > #cabinet.drawer_order then return end
     local drawer = cabinet.drawer_order[drawer_pos]
     if not cabinet.drawers[drawer] or file_index <= 0 or file_index > #cabinet.drawers[drawer] then return end
@@ -187,7 +187,7 @@ M.remove_file = function(drawer_pos, file_index)
     table.remove(cabinet.drawers[drawer], file_index)
 end
 
-M.open_file = function(drawer_pos, file_index)
+M.open_file = function(file_index, drawer_pos)
     drawer_pos = drawer_pos or cabinet.current_drawer
     if not drawer_pos then return end
     if drawer_pos <= 0 or drawer_pos > #cabinet.drawer_order then return end
