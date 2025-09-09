@@ -14,7 +14,10 @@ local drawer_autocmds = function ()
     vim.api.nvim_create_autocmd('VimLeave', {
         group = 'drawer',
         callback = function ()
-            storage.save(cabinet)
+            local cabinet_is_empty = function(cabinet_tbl)
+                return cabinet_tbl.drawer_order == nil or #cabinet_tbl.drawer_order == 0
+            end
+            storage.save(cabinet, cabinet_is_empty)
         end
     })
 

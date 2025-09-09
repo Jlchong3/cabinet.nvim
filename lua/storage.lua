@@ -1,5 +1,5 @@
 ---@class Storage
----@field save fun(tbl:table)
+---@field save fun(tbl:table, is_empty:function)
 ---@field load fun(): table|nil
 local M = {}
 
@@ -68,12 +68,9 @@ end
 
 M.data_path = string.format('%s/cabinet', vim.fn.stdpath('data'))
 
-local function is_empty(tbl)
-    return tbl.drawer_order == nil or #tbl.drawer_order == 0
-end
-
 ---@param tbl table
-M.save = function(tbl)
+---@param is_empty function
+M.save = function(tbl, is_empty)
     ensure_dir(M.data_path)
 
     local filename = get_data_file_name(vim.fn.getcwd()) -- filename is based on cwd
