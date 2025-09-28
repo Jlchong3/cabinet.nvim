@@ -4,17 +4,27 @@ local load_cabinet = function()
     return storage.load() or { current_drawer = nil, drawers = {}, drawer_order = {} }
 end
 
-local cabinet = load_cabinet()
+local cabinet
 
 local M = {}
 
 local drawer_autocmds = function ()
     vim.api.nvim_create_augroup('drawer', { clear = true })
 
+    vim.api.nvim_create_autocmd('UIEnter', {
+        once = true,
+        callback = function ()
+            cabinet = load_cabinet()
+        end
+    })
+
     vim.api.nvim_create_autocmd('VimLeave', {
         group = 'drawer',
         callback = function ()
-            storage.save(cabinet)
+            local cabinet_is_empty = function(cabinet_tbl)
+                return cabinet_tbl.drawer_order == nil or #cabinet_tbl.drawer_order == 0
+            end
+            storage.save(cabinet, cabinet_is_empty)
         end
     })
 
