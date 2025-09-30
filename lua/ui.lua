@@ -222,6 +222,4 @@ M.close = function ()
 
 end
 
-M.open()
-
 return M
