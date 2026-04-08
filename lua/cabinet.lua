@@ -1,10 +1,12 @@
 local storage = require('storage')
 
+---@private
 --- Represents a single file tracked inside a drawer.
 ---@class FileInfo
 ---@field path string Absolute path to the file
 ---@field cursor_pos integer[] Last known cursor position as a `{row, col}` tuple (1-based row, 0-based col)
 
+---@private
 --- The top-level state container persisted to disk.
 ---@class Cabinet
 ---@field current_drawer integer|nil 1-based index into `drawer_order` of the active drawer, or nil when no drawers exist
@@ -18,6 +20,7 @@ local load_cabinet = function()
     return storage.load() or { current_drawer = nil, drawers = {}, drawer_order = {} }
 end
 
+---@private
 ---@type Cabinet
 local state
 

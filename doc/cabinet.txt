@@ -1,22 +1,23 @@
-Represents a single file tracked inside a drawer.
-Class ~
-{FileInfo}
-Fields ~
-{path} `(string)` Absolute path to the file
-{cursor_pos} `(integer[])` Last known cursor position as a `{row, col}` tuple (1-based row, 0-based col)
+*cabinet.nvim* A lightweight buffer navigation plugin for Neovim.
+
+MIT License Copyright (c) 2025 Jose Chong
 
 ------------------------------------------------------------------------------
-The top-level state container persisted to disk.
-Class ~
-{Cabinet}
-Fields ~
-{current_drawer} `(integer|nil)` 1-based index into `drawer_order` of the active drawer, or nil when no drawers exist
-{drawers} `(table<string, FileInfo[]>)` Map of drawer name to its ordered list of tracked files
-{drawer_order} `(string[])` Ordered list of drawer names; the order is what the user sees in the UI
+								       *cabinet*
+
+Instead of maintaining a single global list of marked buffers, with
+cabinet.nvim you organize your workflow into isolated "drawers." It is
+perfect for grouping related files by feature, component, or task—allowing
+you to instantly switch contexts and jump between buffers.
 
 ------------------------------------------------------------------------------
-Type ~
-`(Cabinet)`
+                                                               *cabinet.setup()*
+                            `cabinet.setup`({opts})
+Initializes the cabinet module: registers autocommands and returns the public API.
+Parameters ~
+{opts} `(table?)` Reserved for future configuration options
+Return ~
+`(table)` M The public cabinet API
 
 ------------------------------------------------------------------------------
                                                                *cabinet.setup()*
