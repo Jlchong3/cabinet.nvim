@@ -97,9 +97,9 @@ storage.data_path = string.format('%s/cabinet', vim.fn.stdpath('data'))
 ---@param tbl table The cabinet table to persist
 ---@param is_empty fun(tbl: table): boolean Predicate that returns true when the cabinet holds no meaningful data
 storage.save = function(tbl, is_empty)
-    ensure_dir(M.data_path)
+    ensure_dir(storage.data_path)
     local filename = get_data_file_name(vim.fn.getcwd())
-    local data_file_path = create_file_path(M.data_path, filename)
+    local data_file_path = create_file_path(storage.data_path, filename)
     if is_empty(tbl) and not file_exists(data_file_path) then return end
     local f = assert(io.open(data_file_path, 'w'))
     f:write('return' .. serialize(tbl))
@@ -112,7 +112,7 @@ end
 ---@return table|nil cabinet The deserialized cabinet table, or nil if no data file is found
 storage.load = function()
     local filename = get_data_file_name(vim.fn.getcwd())
-    local data_file_path = create_file_path(M.data_path, filename)
+    local data_file_path = create_file_path(storage.data_path, filename)
     local f = io.open(data_file_path)
     if not f then
         return nil

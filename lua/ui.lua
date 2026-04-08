@@ -248,7 +248,7 @@ ui.open = function(opts)
                 update_drawers()
                 buf_set_files(cursor_row)
             else
-                M.close()
+                ui.close()
                 cabinet.open_file(cursor_row, current_drawer_index)
             end
         end,
@@ -269,7 +269,7 @@ ui.open = function(opts)
 
     vim.api.nvim_buf_set_keymap(buf, 'n', 'q', '', {
         callback = function()
-            M.close()
+            ui.close()
         end,
         noremap = true,
         silent = true,
