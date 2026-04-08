@@ -3,7 +3,7 @@ local cabinet = require('cabinet')
 ---@class UI
 ---@field open fun(opts: vim.api.keyset.win_config?): nil
 ---@field close fun(): nil
-local M = {}
+local ui = {}
 
 ---@type integer
 local buf = -1

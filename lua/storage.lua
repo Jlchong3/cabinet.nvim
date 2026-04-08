@@ -1,9 +1,11 @@
+---@private
 ---@class Storage
 ---@field data_path string Absolute path to the directory where cabinet data files are stored
 ---@field save fun(tbl: table, is_empty: fun(tbl: table): boolean): nil
 ---@field load fun(): table|nil
 local M = {}
 
+---@private
 ---@param path string Absolute path to check
 ---@return boolean|nil
 local dir_exists = function(path)
@@ -11,6 +13,7 @@ local dir_exists = function(path)
     return stat and stat.type == 'directory'
 end
 
+---@private
 ---@param path string Absolute path to check
 ---@return boolean|nil
 local file_exists = function(path)
@@ -18,6 +21,7 @@ local file_exists = function(path)
     return stat and stat.type == 'file'
 end
 
+---@private
 ---@param path string Directory path to create if missing
 local ensure_dir = function(path)
     if not dir_exists(path) then
@@ -25,6 +29,7 @@ local ensure_dir = function(path)
     end
 end
 
+---@private
 --- Returns the SHA-256 hex digest of the given string.
 ---@param string string The string to hash
 ---@return string hash Hex-encoded SHA-256 digest
@@ -32,6 +37,7 @@ local hash = function(string)
     return vim.fn.sha256(string)
 end
 
+---@private
 --- Joins a base directory and a filename into a full file path.
 ---@param basedir string Base directory (no trailing slash)
 ---@param filename string File name (no leading slash)
@@ -40,6 +46,7 @@ local create_file_path = function(basedir, filename)
     return string.format('%s/%s', basedir, filename)
 end
 
+---@private
 --- Derives a stable, filesystem-safe file name from a given string.
 --- The returned name is a SHA-256 hex digest with a `.lua` extension.
 ---@param filename string The source string (typically the current working directory)
@@ -48,6 +55,7 @@ local get_data_file_name = function(filename)
     return hash(filename) .. '.lua'
 end
 
+---@private
 --- Recursively serializes a Lua table into a string that can be loaded
 --- back with `load()`. Handles nested tables, strings, and non-string keys.
 ---@param tbl table The table to serialize
@@ -75,10 +83,12 @@ local function serialize(tbl)
     return result
 end
 
+---@private
 --- Absolute path to the directory where cabinet state files are persisted.
 --- Defaults to `{stdpath('data')}/cabinet`.
-M.data_path = string.format('%s/cabinet', vim.fn.stdpath('data'))
+storage.data_path = string.format('%s/cabinet', vim.fn.stdpath('data'))
 
+---@private
 --- Persists the cabinet table to disk for the current working directory.
 --- The file is named after a SHA-256 hash of the cwd path, so each project
 --- gets its own isolated state file.
@@ -86,7 +96,7 @@ M.data_path = string.format('%s/cabinet', vim.fn.stdpath('data'))
 --- to avoid creating empty data files.
 ---@param tbl table The cabinet table to persist
 ---@param is_empty fun(tbl: table): boolean Predicate that returns true when the cabinet holds no meaningful data
-M.save = function(tbl, is_empty)
+storage.save = function(tbl, is_empty)
     ensure_dir(M.data_path)
     local filename = get_data_file_name(vim.fn.getcwd())
     local data_file_path = create_file_path(M.data_path, filename)
@@ -96,10 +106,11 @@ M.save = function(tbl, is_empty)
     f:close()
 end
 
+---@private
 --- Loads the cabinet table previously saved for the current working directory.
 --- Returns nil when no data file exists yet (first run in this project).
 ---@return table|nil cabinet The deserialized cabinet table, or nil if no data file is found
-M.load = function()
+storage.load = function()
     local filename = get_data_file_name(vim.fn.getcwd())
     local data_file_path = create_file_path(M.data_path, filename)
     local f = io.open(data_file_path)
@@ -112,4 +123,4 @@ M.load = function()
     return chunk()
 end
 
-return M
+return storage

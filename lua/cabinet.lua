@@ -18,9 +18,9 @@ local load_cabinet = function()
 end
 
 ---@type Cabinet
-local cabinet
+local state
 
-local M = {}
+local cabinet = {}
 
 local default_config = {
     window = {
