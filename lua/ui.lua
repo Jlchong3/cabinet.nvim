@@ -137,7 +137,9 @@ end
 --- - New lines are added with a default cursor position of `{1, 0}`.
 --- - Files no longer present in the buffer are removed.
 local function update_files()
-    local drawer_files = assert(cabinet.get_drawer_files(current_drawer_index))
+    local ok, drawer_files = pcall(cabinet.get_drawer_files, current_drawer_index)
+    if not ok then return end;
+
     local buf_lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 
     ---@type table<string, FileInfo>
