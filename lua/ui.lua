@@ -113,10 +113,24 @@ local function update_files()
 end
 
 local function drawer_win_config(opts)
-    local width = math.floor(vim.o.columns * 0.4)
-    local height = math.floor(vim.o.lines * 0.3)
-    local row = math.floor((vim.o.lines - height) / 2)
-    local col = math.floor((vim.o.columns - width) / 2)
+    local win_conf = cabinet.config.window
+
+    local max_width = vim.o.columns
+    local max_height = vim.o.lines
+
+    -- Support both percentages (e.g., 0.4) and absolute integers (e.g., 80)
+    local width = win_conf.width
+    if type(width) == "number" and width <= 1 then
+        width = math.floor(max_width * width)
+    end
+
+    local height = win_conf.height
+    if type(height) == "number" and height <= 1 then
+        height = math.floor(max_height * height)
+    end
+
+    local row = math.floor((max_height - height) / 2)
+    local col = math.floor((max_width - width) / 2)
 
     local window_config = vim.tbl_deep_extend('force', {
         relative = 'editor',
@@ -124,10 +138,10 @@ local function drawer_win_config(opts)
         height = height,
         row = row,
         col = col,
-        title = { {'Drawers', 'DrawerTitle'} },
-        style = 'minimal',
-        border = 'single',
-    }, opts)
+        title = win_conf.title,
+        style = win_conf.style,
+        border = win_conf.border,
+    }, opts or {})
 
     return window_config
 end

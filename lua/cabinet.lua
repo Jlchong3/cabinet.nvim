@@ -9,6 +9,17 @@ local cabinet
 local M = {}
 
 local drawer_autocmds = function ()
+local default_config = {
+    window = {
+        width = 0.4,  -- If <= 1, treated as a percentage. If > 1, treated as fixed columns.
+        height = 0.3, -- If <= 1, treated as a percentage. If > 1, treated as fixed lines.
+        border = 'single',
+        style = 'minimal',
+        title = { { 'Drawers', 'DrawerTitle' } },
+    }
+}
+
+M.config = vim.deepcopy(default_config)
     vim.api.nvim_create_augroup('drawer', { clear = true })
 
     vim.api.nvim_create_autocmd('UIEnter', {
@@ -59,9 +70,9 @@ local function get_drawer_pos(drawer)
     end
 end
 
-M.setup = function (opts)
-    drawer_autocmds()
+    M.config = vim.tbl_deep_extend('force', M.config, opts or {})
 
+    drawer_autocmds()
     return M
 end
 
