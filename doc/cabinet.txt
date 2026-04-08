@@ -1,0 +1,190 @@
+Represents a single file tracked inside a drawer.
+Class ~
+{FileInfo}
+Fields ~
+{path} `(string)` Absolute path to the file
+{cursor_pos} `(integer[])` Last known cursor position as a `{row, col}` tuple (1-based row, 0-based col)
+
+------------------------------------------------------------------------------
+The top-level state container persisted to disk.
+Class ~
+{Cabinet}
+Fields ~
+{current_drawer} `(integer|nil)` 1-based index into `drawer_order` of the active drawer, or nil when no drawers exist
+{drawers} `(table<string, FileInfo[]>)` Map of drawer name to its ordered list of tracked files
+{drawer_order} `(string[])` Ordered list of drawer names; the order is what the user sees in the UI
+
+------------------------------------------------------------------------------
+Type ~
+`(Cabinet)`
+
+------------------------------------------------------------------------------
+                                                               *cabinet.setup()*
+                            `cabinet.setup`({opts})
+Initializes the cabinet module: registers autocommands and returns the public API.
+Parameters ~
+{opts} `(table?)` Reserved for future configuration options
+Return ~
+`(table)` M The public cabinet API
+
+------------------------------------------------------------------------------
+                                                  *cabinet.get_current_drawer()*
+                         `cabinet.get_current_drawer`()
+Returns the 1-based index of the currently active drawer, or nil when no drawer is open.
+Return ~
+`(integer|nil)` drawer_pos
+
+------------------------------------------------------------------------------
+                                                          *cabinet.add_drawer()*
+                         `cabinet.add_drawer`({drawer})
+Creates a new drawer with the given name.
+If `drawer` is nil the user is prompted interactively.
+If `drawer` is an empty string, `"default"` is used.
+Returns nil if the drawer already exists or the input was cancelled.
+Parameters ~
+{drawer} `(string?)` Name for the new drawer (optional; prompts if nil)
+Return ~
+`(string|nil)` drawer The name of the created drawer, or nil on failure
+
+------------------------------------------------------------------------------
+                                                        *cabinet.drawer_exist()*
+                        `cabinet.drawer_exist`({drawer})
+Returns the file list table for `drawer` if it exists, or nil otherwise.
+This is truthy even when the drawer is empty (it returns an empty table).
+Parameters ~
+{drawer} `(string)` Drawer name to check
+Return ~
+`(FileInfo[]|nil)` files The drawer's file list, or nil if the drawer does not exist
+
+------------------------------------------------------------------------------
+                                                       *cabinet.remove_drawer()*
+                     `cabinet.remove_drawer`({drawer_pos})
+Removes the drawer at position `drawer_pos` from the cabinet.
+Adjusts `current_drawer` so it remains valid after the removal.
+Does nothing when `drawer_pos` is out of range.
+Parameters ~
+{drawer_pos} `(integer)` 1-based index of the drawer to remove
+
+------------------------------------------------------------------------------
+                                               *cabinet.remove_drawer_by_name()*
+                   `cabinet.remove_drawer_by_name`({drawer})
+Removes the drawer with the given name.
+Adjusts `current_drawer` so it remains valid after the removal.
+Does nothing when the drawer does not exist.
+Parameters ~
+{drawer} `(string)` Name of the drawer to remove
+
+------------------------------------------------------------------------------
+                                                 *cabinet.open_drawer_by_name()*
+                    `cabinet.open_drawer_by_name`({drawer})
+Sets the active drawer to the one with the given name.
+Does nothing when the drawer does not exist.
+Parameters ~
+{drawer} `(string)` Name of the drawer to open
+
+------------------------------------------------------------------------------
+                                                         *cabinet.open_drawer()*
+                      `cabinet.open_drawer`({drawer_pos})
+Sets the active drawer to the one at position `drawer_pos`.
+Does nothing when `drawer_pos` is out of range.
+Parameters ~
+{drawer_pos} `(integer)` 1-based index of the drawer to open
+
+------------------------------------------------------------------------------
+                                               *cabinet.rename_drawer_by_name()*
+             `cabinet.rename_drawer_by_name`({drawer}, {new_name})
+Renames the drawer with the given name.
+Does nothing when `drawer` does not exist or `new_name` is already taken.
+Parameters ~
+{drawer} `(string)` Current name of the drawer
+{new_name} `(string)` Desired new name
+
+------------------------------------------------------------------------------
+                                                       *cabinet.rename_drawer()*
+               `cabinet.rename_drawer`({drawer_pos}, {new_name})
+Renames the drawer at position `drawer_pos`.
+Does nothing when `drawer_pos` is out of range or `new_name` is already taken.
+Parameters ~
+{drawer_pos} `(integer)` 1-based index of the drawer to rename
+{new_name} `(string)` Desired new name
+
+------------------------------------------------------------------------------
+                                                         *cabinet.get_drawers()*
+                            `cabinet.get_drawers`()
+Returns the full drawers map (name → file list).
+Return ~
+`(table<string, FileInfo[]>)`
+
+------------------------------------------------------------------------------
+                                                    *cabinet.get_drawer_order()*
+                          `cabinet.get_drawer_order`()
+Returns the ordered list of drawer names.
+Return ~
+`(string[])`
+
+------------------------------------------------------------------------------
+                                            *cabinet.get_drawer_files_by_name()*
+                  `cabinet.get_drawer_files_by_name`({drawer})
+Returns the file list for the drawer with the given name.
+Returns nil when the drawer does not exist.
+Parameters ~
+{drawer} `(string)` Drawer name
+Return ~
+`(FileInfo[]|nil)`
+
+------------------------------------------------------------------------------
+                                                    *cabinet.get_drawer_files()*
+                    `cabinet.get_drawer_files`({drawer_pos})
+Returns the file list for the drawer at position `drawer_pos`.
+Returns nil when `drawer_pos` is out of range.
+Parameters ~
+{drawer_pos} `(integer)` 1-based index into `drawer_order`
+Return ~
+`(FileInfo[]|nil)`
+
+------------------------------------------------------------------------------
+                                                            *cabinet.add_file()*
+                        `cabinet.add_file`({drawer_pos})
+Appends the current buffer to a drawer and records its cursor position.
+If `drawer_pos` is nil, uses the active drawer; creates one named `"default"`
+when no drawers exist yet.
+Returns the 1-based index of the newly added file within its drawer, or nil on failure.
+Parameters ~
+{drawer_pos} `(integer?)` 1-based index of the target drawer (defaults to `current_drawer`)
+Return ~
+`(integer|nil)` file_index Index of the added file within the drawer, or nil on failure
+
+------------------------------------------------------------------------------
+                                                         *cabinet.remove_file()*
+               `cabinet.remove_file`({file_index}, {drawer_pos})
+Removes the file at `file_index` from the drawer at `drawer_pos`.
+Does nothing when either index is out of range.
+Parameters ~
+{file_index} `(integer)` 1-based index of the file within the drawer
+{drawer_pos} `(integer)` 1-based index of the drawer in `drawer_order`
+
+------------------------------------------------------------------------------
+                                                           *cabinet.open_file()*
+                `cabinet.open_file`({file_index}, {drawer_pos})
+Opens the file at `file_index` inside the drawer at `drawer_pos`.
+If `drawer_pos` is nil, uses the active drawer.
+Restores the previously saved cursor position after opening.
+Does nothing when the file is already the current buffer or indices are out of range.
+Parameters ~
+{file_index} `(integer)` 1-based index of the file within the drawer
+{drawer_pos} `(integer?)` 1-based index of the drawer (defaults to `current_drawer`)
+
+------------------------------------------------------------------------------
+                                                                *cabinet.open()*
+                             `cabinet.open`({opts})
+Opens the drawer floating window. Delegates to the `ui` module.
+Parameters ~
+{opts} `(vim.api.keyset.win_config?)` Optional overrides for the window configuration
+
+------------------------------------------------------------------------------
+                                                               *cabinet.close()*
+                               `cabinet.close`()
+Closes the drawer floating window. Delegates to the `ui` module.
+
+
+ vim:tw=78:ts=8:noet:ft=help:norl:
