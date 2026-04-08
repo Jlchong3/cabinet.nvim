@@ -75,9 +75,11 @@ local function buf_set_files(drawer_index)
     in_drawer_view = true
     current_drawer_index = drawer_index
 
+    local files = cabinet.get_drawer_files(drawer_index)
+    if not files then return end
+
     reset_buffer()
 
-    local files = assert(cabinet.get_drawer_files(drawer_index))
     local lines = {}
     for _, f in ipairs(files) do
         local relpath = get_relative_path(vim.fn.getcwd(), f.path)
