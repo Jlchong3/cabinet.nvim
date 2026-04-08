@@ -1,8 +1,8 @@
 ---@private
 ---@class Storage
 ---@field data_path string Absolute path to the directory where cabinet data files are stored
----@field save fun(tbl: table, is_empty: fun(tbl: table): boolean): nil
----@field load fun(): table|nil
+---@field save fun(tbl: table, path: string, is_empty: fun(tbl: table): boolean): nil
+---@field load fun(path: string): table|nil
 local storage = {}
 
 ---@private
@@ -25,7 +25,7 @@ end
 ---@param path string Directory path to create if missing
 local ensure_dir = function(path)
     if not dir_exists(path) then
-        os.execute('mkdir -p ' .. path)
+        vim.fn.mkdir(path, 'p')
     end
 end
 
@@ -83,36 +83,31 @@ local function serialize(tbl)
     return result
 end
 
----@private
---- Absolute path to the directory where cabinet state files are persisted.
---- Defaults to `{stdpath('data')}/cabinet`.
-storage.data_path = string.format('%s/cabinet', vim.fn.stdpath('data'))
-
----@private
 --- Persists the cabinet table to disk for the current working directory.
 --- The file is named after a SHA-256 hash of the cwd path, so each project
 --- gets its own isolated state file.
 --- If `is_empty` returns true and no file exists yet, the write is skipped
 --- to avoid creating empty data files.
 ---@param tbl table The cabinet table to persist
+---@param path string Absolute path to the directory where cabinet data files are stored
 ---@param is_empty fun(tbl: table): boolean Predicate that returns true when the cabinet holds no meaningful data
-storage.save = function(tbl, is_empty)
-    ensure_dir(storage.data_path)
+storage.save = function(tbl, path, is_empty)
+    ensure_dir(path)
     local filename = get_data_file_name(vim.fn.getcwd())
-    local data_file_path = create_file_path(storage.data_path, filename)
+    local data_file_path = create_file_path(path, filename)
     if is_empty(tbl) and not file_exists(data_file_path) then return end
     local f = assert(io.open(data_file_path, 'w'))
     f:write('return' .. serialize(tbl))
     f:close()
 end
 
----@private
 --- Loads the cabinet table previously saved for the current working directory.
 --- Returns nil when no data file exists yet (first run in this project).
+---@param path string Absolute path to the directory where cabinet data files are stored
 ---@return table|nil cabinet The deserialized cabinet table, or nil if no data file is found
-storage.load = function()
+storage.load = function(path)
     local filename = get_data_file_name(vim.fn.getcwd())
-    local data_file_path = create_file_path(storage.data_path, filename)
+    local data_file_path = create_file_path(path, filename)
     local f = io.open(data_file_path)
     if not f then
         return nil

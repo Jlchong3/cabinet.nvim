@@ -22,8 +22,8 @@ local in_drawer_view = false
 ---@private
 --- 1-based index of the drawer whose files are currently displayed.
 --- nil when in the top-level drawer list view.
----@type integer|nil
-local current_drawer_index = nil
+---@type integer
+local current_drawer_index = -1
 
 ---@private
 --- Window config overrides supplied by the caller of `M.open`.
@@ -60,7 +60,7 @@ end
 --- and switches to the top-level drawer list view.
 local function buf_set_drawers()
     in_drawer_view = false
-    current_drawer_index = nil
+    current_drawer_index = -1
 
     reset_buffer()
 
@@ -156,7 +156,8 @@ local function update_files()
     for _, line in ipairs(buf_lines) do
         local relpath = vim.trim(line)
         if relpath ~= "" then
-            local fullpath = vim.fn.getcwd() .. "/" .. relpath
+            local is_absolute = relpath:match("^/") or relpath:match("^%a:[/\\]")
+            local fullpath = is_absolute and relpath or (vim.fn.getcwd() .. "/" .. relpath)
 
             local old_file_info = old_files_map[fullpath]
             if old_file_info then
@@ -215,7 +216,6 @@ local function drawer_win_config(opts)
     return window_config
 end
 
----@private
 --- Opens the drawer floating window.
 --- If the window is already open, focuses it without reinitializing.
 --- Sets up all buffer-local keymaps and autocommands on first open:
@@ -248,7 +248,7 @@ ui.open = function(opts)
     vim.api.nvim_buf_set_keymap(buf, 'n', '<CR>', '', {
         callback = function()
             local cursor_row = vim.api.nvim_win_get_cursor(0)[1]
-            if not in_drawer_view then
+            if not in_drawer_view and #cabinet.get_drawer_order() ~= 0 then
                 update_drawers()
                 buf_set_files(cursor_row)
             else
@@ -290,7 +290,7 @@ ui.open = function(opts)
                 update_files()
                 buf_set_files(current_drawer_index)
             end
-            vim.api.nvim_win_set_cursor(win, cursor_pos)
+            pcall(vim.api.nvim_win_set_cursor, win, cursor_pos)
         end
     })
 
@@ -303,7 +303,6 @@ ui.open = function(opts)
     })
 end
 
----@private
 --- Closes the floating drawer window and persists any edits made in the buffer.
 --- Flushes drawer list edits when in the top-level view,
 --- or file list edits when in the file list view.
