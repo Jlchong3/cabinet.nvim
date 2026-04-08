@@ -1,29 +1,36 @@
 local cabinet = require('cabinet')
 
+---@private
 ---@class UI
 ---@field open fun(opts: vim.api.keyset.win_config?): nil
 ---@field close fun(): nil
 local ui = {}
 
+---@private
 ---@type integer
 local buf = -1
+---@private
 ---@type integer
 local win = -1
 
+---@private
 --- True while the buffer is showing a drawer's file list;
 --- false when showing the top-level drawer list.
 ---@type boolean
 local in_drawer_view = false
 
+---@private
 --- 1-based index of the drawer whose files are currently displayed.
 --- nil when in the top-level drawer list view.
 ---@type integer|nil
 local current_drawer_index = nil
 
+---@private
 --- Window config overrides supplied by the caller of `M.open`.
 ---@type vim.api.keyset.win_config?
 local saved_opts = nil
 
+---@private
 --- Strips `basedir` (and an optional trailing slash) from the beginning of `path`.
 ---@param basedir string The base directory prefix to remove
 ---@param path string The full path to make relative
@@ -33,6 +40,7 @@ local function get_relative_path(basedir, path)
     return relpath
 end
 
+---@private
 --- Ensures the module buffer exists and is empty.
 --- Creates a new scratch buffer when the current one is invalid,
 --- otherwise wipes its content. Sets `bufhidden=wipe` and `filetype=drawer`.
@@ -47,6 +55,7 @@ local function reset_buffer()
     vim.bo[buf].filetype = 'drawer'
 end
 
+---@private
 --- Populates the buffer with the ordered list of drawer names
 --- and switches to the top-level drawer list view.
 local function buf_set_drawers()
@@ -58,6 +67,7 @@ local function buf_set_drawers()
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, cabinet.get_drawer_order())
 end
 
+---@private
 --- Populates the buffer with the relative paths of all files in `drawer_index`
 --- and switches to the file list view for that drawer.
 ---@param drawer_index integer 1-based index of the drawer whose files to display
@@ -77,6 +87,7 @@ local function buf_set_files(drawer_index)
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 end
 
+---@private
 --- Syncs the in-memory cabinet with the current buffer contents while in
 --- the top-level drawer list view.
 --- - Lines that match an existing drawer name are kept in their new order.
@@ -119,6 +130,7 @@ local function update_drawers()
     end
 end
 
+---@private
 --- Syncs the current drawer's file list with the buffer contents while in
 --- the file list view.
 --- - Lines matching a known path preserve cursor position metadata.
@@ -159,6 +171,7 @@ local function update_files()
     drawers[drawer_name] = new_list
 end
 
+---@private
 --- Builds the `nvim_open_win` config for the floating drawer window.
 --- The window is centered and sized at 40% of the editor width and 30% of the editor height.
 --- Any keys in `opts` override the defaults via `vim.tbl_deep_extend`.
@@ -198,6 +211,7 @@ local function drawer_win_config(opts)
     return window_config
 end
 
+---@private
 --- Opens the drawer floating window.
 --- If the window is already open, focuses it without reinitializing.
 --- Sets up all buffer-local keymaps and autocommands on first open:
@@ -212,7 +226,7 @@ end
 --- - `InsertLeave` — persist edits and refresh the buffer.
 --- - `VimResized`  — recompute and apply the window dimensions.
 ---@param opts vim.api.keyset.win_config? Optional overrides for the window configuration
-M.open = function(opts)
+ui.open = function(opts)
     saved_opts = opts or {}
 
     if vim.api.nvim_win_is_valid(win) then
@@ -285,10 +299,11 @@ M.open = function(opts)
     })
 end
 
+---@private
 --- Closes the floating drawer window and persists any edits made in the buffer.
 --- Flushes drawer list edits when in the top-level view,
 --- or file list edits when in the file list view.
-M.close = function()
+ui.close = function()
     if not in_drawer_view then
         update_drawers()
     else
@@ -300,4 +315,4 @@ M.close = function()
     end
 end
 
-return M
+return ui

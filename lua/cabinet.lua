@@ -11,6 +11,7 @@ local storage = require('storage')
 ---@field drawers table<string, FileInfo[]> Map of drawer name to its ordered list of tracked files
 ---@field drawer_order string[] Ordered list of drawer names; the order is what the user sees in the UI
 
+---@private
 --- Initializes a new empty cabinet.
 ---@return Cabinet
 local load_cabinet = function()
@@ -32,8 +33,9 @@ local default_config = {
     }
 }
 
-M.config = vim.deepcopy(default_config)
+cabinet.config = vim.deepcopy(default_config)
 
+---@private
 --- Registers all autocommands required by the cabinet.
 --- - `UIEnter`: loads persisted cabinet state from disk (runs once).
 --- - `VimLeave`: saves cabinet state to disk.
@@ -45,7 +47,7 @@ local drawer_autocmds = function()
     vim.api.nvim_create_autocmd('UIEnter', {
         once = true,
         callback = function()
-            cabinet = load_cabinet()
+            state = load_cabinet()
         end
     })
 
@@ -57,17 +59,17 @@ local drawer_autocmds = function()
             local cabinet_is_empty = function(cabinet_tbl)
                 return cabinet_tbl.drawer_order == nil or #cabinet_tbl.drawer_order == 0
             end
-            storage.save(cabinet, cabinet_is_empty)
+            storage.save(state, cabinet_is_empty)
         end
     })
 
     vim.api.nvim_create_autocmd('BufLeave', {
         group = 'drawer',
         callback = function()
-            local current = cabinet.current_drawer
-            if not current or current <= 0 or current > #cabinet.drawer_order then return end
+            local current = state.current_drawer
+            if not current or current <= 0 or current > #state.drawer_order then return end
 
-            local files = assert(M.get_drawer_files(cabinet.current_drawer))
+            local files = assert(cabinet.get_drawer_files(state.current_drawer))
             if #files == 0 then return end
 
             local filepath = vim.api.nvim_buf_get_name(0)
@@ -83,12 +85,13 @@ local drawer_autocmds = function()
     })
 end
 
+---@private
 --- Returns the 1-based position of `drawer` inside `cabinet.drawer_order`,
 --- or nil if the drawer does not exist.
 ---@param drawer string Drawer name to locate
 ---@return integer|nil position 1-based index, or nil if not found
 local function get_drawer_pos(drawer)
-    for i, drawer_key in ipairs(cabinet.drawer_order) do
+    for i, drawer_key in ipairs(state.drawer_order) do
         if drawer_key == drawer then
             return i
         end
@@ -98,17 +101,17 @@ end
 --- Initializes the cabinet module: registers autocommands and returns the public API.
 ---@param opts table? Reserved for future configuration options
 ---@return table M The public cabinet API
-M.setup = function(opts)
-    M.config = vim.tbl_deep_extend('force', M.config, opts or {})
+cabinet.setup = function(opts)
+    cabinet.config = vim.tbl_deep_extend('force', cabinet.config, opts or {})
 
     drawer_autocmds()
-    return M
+    return cabinet
 end
 
 --- Returns the 1-based index of the currently active drawer, or nil when no drawer is open.
 ---@return integer|nil drawer_pos
-M.get_current_drawer = function()
-    return cabinet.current_drawer
+cabinet.get_current_drawer = function()
+    return state.current_drawer
 end
 
 --- Creates a new drawer with the given name.
@@ -117,20 +120,20 @@ end
 --- Returns nil if the drawer already exists or the input was cancelled.
 ---@param drawer string? Name for the new drawer (optional; prompts if nil)
 ---@return string|nil drawer The name of the created drawer, or nil on failure
-M.add_drawer = function(drawer)
+cabinet.add_drawer = function(drawer)
     drawer = drawer or vim.fn.input('Drawer name: ')
 
     if drawer == nil then return end
     if drawer == '' then drawer = 'default' end
-    if cabinet.drawers[drawer] then
+    if state.drawers[drawer] then
         print('Drawer already exists')
         return
     end
 
-    cabinet.drawers[drawer] = {}
-    table.insert(cabinet.drawer_order, drawer)
+    state.drawers[drawer] = {}
+    table.insert(state.drawer_order, drawer)
 
-    if not cabinet.current_drawer then cabinet.current_drawer = #cabinet.drawer_order end
+    if not state.current_drawer then state.current_drawer = #state.drawer_order end
 
     return drawer
 end
@@ -139,25 +142,25 @@ end
 --- This is truthy even when the drawer is empty (it returns an empty table).
 ---@param drawer string Drawer name to check
 ---@return FileInfo[]|nil files The drawer's file list, or nil if the drawer does not exist
-M.drawer_exist = function(drawer)
-    return cabinet.drawers[drawer]
+cabinet.drawer_exist = function(drawer)
+    return state.drawers[drawer]
 end
 
 --- Removes the drawer at position `drawer_pos` from the cabinet.
 --- Adjusts `current_drawer` so it remains valid after the removal.
 --- Does nothing when `drawer_pos` is out of range.
 ---@param drawer_pos integer 1-based index of the drawer to remove
-M.remove_drawer = function(drawer_pos)
-    if drawer_pos <= 0 or drawer_pos > #cabinet.drawer_order then return end
-    local drawer = cabinet.drawer_order[drawer_pos]
-    table.remove(cabinet.drawer_order, drawer_pos)
+cabinet.remove_drawer = function(drawer_pos)
+    if drawer_pos <= 0 or drawer_pos > #state.drawer_order then return end
+    local drawer = state.drawer_order[drawer_pos]
+    table.remove(state.drawer_order, drawer_pos)
 
-    cabinet.drawers[drawer] = nil
+    state.drawers[drawer] = nil
 
-    if #cabinet.drawer_order == 0 then
-        cabinet.current_drawer = nil
-    elseif cabinet.current_drawer and cabinet.current_drawer >= drawer_pos then
-        cabinet.current_drawer = math.min(cabinet.current_drawer, #cabinet.drawer_order)
+    if #state.drawer_order == 0 then
+        state.current_drawer = nil
+    elseif state.current_drawer and state.current_drawer >= drawer_pos then
+        state.current_drawer = math.min(state.current_drawer, #state.drawer_order)
     end
 end
 
@@ -165,95 +168,95 @@ end
 --- Adjusts `current_drawer` so it remains valid after the removal.
 --- Does nothing when the drawer does not exist.
 ---@param drawer string Name of the drawer to remove
-M.remove_drawer_by_name = function(drawer)
-    if not cabinet.drawers[drawer] then return end
-    cabinet.drawers[drawer] = nil
+cabinet.remove_drawer_by_name = function(drawer)
+    if not state.drawers[drawer] then return end
+    state.drawers[drawer] = nil
     local drawer_pos = get_drawer_pos(drawer)
-    table.remove(cabinet.drawer_order, drawer_pos)
+    table.remove(state.drawer_order, drawer_pos)
 
-    if #cabinet.drawer_order == 0 then
-        cabinet.current_drawer = nil
-    elseif cabinet.current_drawer and cabinet.current_drawer >= drawer_pos then
-        cabinet.current_drawer = math.min(cabinet.current_drawer, #cabinet.drawer_order)
+    if #state.drawer_order == 0 then
+        state.current_drawer = nil
+    elseif state.current_drawer and state.current_drawer >= drawer_pos then
+        state.current_drawer = math.min(state.current_drawer, #state.drawer_order)
     end
 end
 
 --- Sets the active drawer to the one with the given name.
 --- Does nothing when the drawer does not exist.
 ---@param drawer string Name of the drawer to open
-M.open_drawer_by_name = function(drawer)
-    if not cabinet.drawers[drawer] then return end
-    cabinet.current_drawer = get_drawer_pos(drawer)
+cabinet.open_drawer_by_name = function(drawer)
+    if not state.drawers[drawer] then return end
+    state.current_drawer = get_drawer_pos(drawer)
 end
 
 --- Sets the active drawer to the one at position `drawer_pos`.
 --- Does nothing when `drawer_pos` is out of range.
 ---@param drawer_pos integer 1-based index of the drawer to open
-M.open_drawer = function(drawer_pos)
-    if drawer_pos <= 0 or drawer_pos > #cabinet.drawer_order then return end
-    cabinet.current_drawer = drawer_pos
+cabinet.open_drawer = function(drawer_pos)
+    if drawer_pos <= 0 or drawer_pos > #state.drawer_order then return end
+    state.current_drawer = drawer_pos
 end
 
 --- Renames the drawer with the given name.
 --- Does nothing when `drawer` does not exist or `new_name` is already taken.
 ---@param drawer string Current name of the drawer
 ---@param new_name string Desired new name
-M.rename_drawer_by_name = function(drawer, new_name)
-    if not cabinet.drawers[drawer] then return end
-    if cabinet.drawers[new_name] then return end
+cabinet.rename_drawer_by_name = function(drawer, new_name)
+    if not state.drawers[drawer] then return end
+    if state.drawers[new_name] then return end
 
-    cabinet.drawer_order[get_drawer_pos(drawer)] = new_name
+    state.drawer_order[get_drawer_pos(drawer)] = new_name
 
-    local drawer_content = cabinet.drawers[drawer]
-    cabinet.drawers[drawer] = nil
-    cabinet.drawers[new_name] = drawer_content
+    local drawer_content = state.drawers[drawer]
+    state.drawers[drawer] = nil
+    state.drawers[new_name] = drawer_content
 end
 
 --- Renames the drawer at position `drawer_pos`.
 --- Does nothing when `drawer_pos` is out of range or `new_name` is already taken.
 ---@param drawer_pos integer 1-based index of the drawer to rename
 ---@param new_name string Desired new name
-M.rename_drawer = function(drawer_pos, new_name)
-    if drawer_pos <= 0 or drawer_pos > #cabinet.drawer_order then return end
-    if cabinet.drawers[new_name] then return end
+cabinet.rename_drawer = function(drawer_pos, new_name)
+    if drawer_pos <= 0 or drawer_pos > #state.drawer_order then return end
+    if state.drawers[new_name] then return end
 
-    local drawer = cabinet.drawer_order[drawer_pos]
-    local drawer_content = cabinet.drawers[drawer]
+    local drawer = state.drawer_order[drawer_pos]
+    local drawer_content = state.drawers[drawer]
 
-    cabinet.drawers[drawer] = nil
-    cabinet.drawers[new_name] = drawer_content
-    cabinet.drawer_order[drawer_pos] = new_name
+    state.drawers[drawer] = nil
+    state.drawers[new_name] = drawer_content
+    state.drawer_order[drawer_pos] = new_name
 end
 
 --- Returns the full drawers map (name → file list).
 ---@return table<string, FileInfo[]>
-M.get_drawers = function()
-    return cabinet.drawers
+cabinet.get_drawers = function()
+    return state.drawers
 end
 
 --- Returns the ordered list of drawer names.
 ---@return string[]
-M.get_drawer_order = function()
-    return cabinet.drawer_order
+cabinet.get_drawer_order = function()
+    return state.drawer_order
 end
 
 --- Returns the file list for the drawer with the given name.
 --- Returns nil when the drawer does not exist.
 ---@param drawer string Drawer name
 ---@return FileInfo[]|nil
-M.get_drawer_files_by_name = function(drawer)
-    return cabinet.drawers[drawer]
+cabinet.get_drawer_files_by_name = function(drawer)
+    return state.drawers[drawer]
 end
 
 --- Returns the file list for the drawer at position `drawer_pos`.
 --- Returns nil when `drawer_pos` is out of range.
 ---@param drawer_pos integer 1-based index into `drawer_order`
 ---@return FileInfo[]|nil
-M.get_drawer_files = function(drawer_pos)
-    if drawer_pos <= 0 or drawer_pos > #cabinet.drawer_order then return end
+cabinet.get_drawer_files = function(drawer_pos)
+    if drawer_pos <= 0 or drawer_pos > #state.drawer_order then return end
 
-    local drawer = cabinet.drawer_order[drawer_pos]
-    return cabinet.drawers[drawer]
+    local drawer = state.drawer_order[drawer_pos]
+    return state.drawers[drawer]
 end
 
 --- Appends the current buffer to a drawer and records its cursor position.
@@ -262,38 +265,38 @@ end
 --- Returns the 1-based index of the newly added file within its drawer, or nil on failure.
 ---@param drawer_pos integer? 1-based index of the target drawer (defaults to `current_drawer`)
 ---@return integer|nil file_index Index of the added file within the drawer, or nil on failure
-M.add_file = function(drawer_pos)
-    drawer_pos = drawer_pos or cabinet.current_drawer
+cabinet.add_file = function(drawer_pos)
+    drawer_pos = drawer_pos or state.current_drawer
 
     local drawer
     if not drawer_pos then
-        M.add_drawer()
-        cabinet.current_drawer = #cabinet.drawer_order
-        drawer = cabinet.drawer_order[cabinet.current_drawer]
-    elseif 0 < drawer_pos and drawer_pos <= #cabinet.drawer_order then
-        drawer = cabinet.drawer_order[drawer_pos]
+        cabinet.add_drawer()
+        state.current_drawer = #state.drawer_order
+        drawer = state.drawer_order[state.current_drawer]
+    elseif 0 < drawer_pos and drawer_pos <= #state.drawer_order then
+        drawer = state.drawer_order[drawer_pos]
     else
         return
     end
 
-    table.insert(cabinet.drawers[drawer], {
+    table.insert(state.drawers[drawer], {
         path = vim.api.nvim_buf_get_name(0),
         cursor_pos = vim.api.nvim_win_get_cursor(0)
     })
 
-    return #cabinet.drawers[drawer]
+    return #state.drawers[drawer]
 end
 
 --- Removes the file at `file_index` from the drawer at `drawer_pos`.
 --- Does nothing when either index is out of range.
 ---@param file_index integer 1-based index of the file within the drawer
 ---@param drawer_pos integer 1-based index of the drawer in `drawer_order`
-M.remove_file = function(file_index, drawer_pos)
-    if drawer_pos <= 0 or drawer_pos > #cabinet.drawer_order then return end
-    local drawer = cabinet.drawer_order[drawer_pos]
-    if not cabinet.drawers[drawer] or file_index <= 0 or file_index > #cabinet.drawers[drawer] then return end
+cabinet.remove_file = function(file_index, drawer_pos)
+    if drawer_pos <= 0 or drawer_pos > #state.drawer_order then return end
+    local drawer = state.drawer_order[drawer_pos]
+    if not state.drawers[drawer] or file_index <= 0 or file_index > #state.drawers[drawer] then return end
 
-    table.remove(cabinet.drawers[drawer], file_index)
+    table.remove(state.drawers[drawer], file_index)
 end
 
 --- Opens the file at `file_index` inside the drawer at `drawer_pos`.
@@ -302,16 +305,16 @@ end
 --- Does nothing when the file is already the current buffer or indices are out of range.
 ---@param file_index integer 1-based index of the file within the drawer
 ---@param drawer_pos integer? 1-based index of the drawer (defaults to `current_drawer`)
-M.open_file = function(file_index, drawer_pos)
-    drawer_pos = drawer_pos or cabinet.current_drawer
+cabinet.open_file = function(file_index, drawer_pos)
+    drawer_pos = drawer_pos or state.current_drawer
     if not drawer_pos then return end
-    if drawer_pos <= 0 or drawer_pos > #cabinet.drawer_order then return end
+    if drawer_pos <= 0 or drawer_pos > #state.drawer_order then return end
 
-    local drawer = cabinet.drawer_order[drawer_pos]
+    local drawer = state.drawer_order[drawer_pos]
 
-    if file_index <= 0 or file_index > #cabinet.drawers[drawer] then return end
+    if file_index <= 0 or file_index > #state.drawers[drawer] then return end
 
-    local file = cabinet.drawers[drawer][file_index]
+    local file = state.drawers[drawer][file_index]
 
     if file.path == vim.api.nvim_buf_get_name(0) then return end
 
@@ -321,13 +324,13 @@ end
 
 --- Opens the drawer floating window. Delegates to the `ui` module.
 ---@param opts vim.api.keyset.win_config? Optional overrides for the window configuration
-M.open = function(opts)
+cabinet.open = function(opts)
     require('ui').open(opts)
 end
 
 --- Closes the drawer floating window. Delegates to the `ui` module.
-M.close = function()
+cabinet.close = function()
     require('ui').close()
 end
 
-return M
+return cabinet

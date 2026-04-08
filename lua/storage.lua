@@ -3,7 +3,7 @@
 ---@field data_path string Absolute path to the directory where cabinet data files are stored
 ---@field save fun(tbl: table, is_empty: fun(tbl: table): boolean): nil
 ---@field load fun(): table|nil
-local M = {}
+local storage = {}
 
 ---@private
 ---@param path string Absolute path to check
