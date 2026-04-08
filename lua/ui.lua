@@ -57,26 +57,35 @@ local function update_drawers()
     local drawer_order = cabinet.get_drawer_order()
 
     local seen = {}
+    local new_order = {}
 
-    for i, name in ipairs(lines) do
+    for _, name in ipairs(lines) do
         name = vim.trim(name)
-        if name ~= "" then
+        if name ~= "" and not seen[name] then
             seen[name] = true
-
             if drawers[name] then
-                drawer_order[i] = name
+                table.insert(new_order, name)
             else
                 cabinet.add_drawer(name)
+                table.insert(new_order, name)
             end
         end
     end
 
+    -- remove drawers the user deleted
     for drawer, _ in pairs(drawers) do
         if not seen[drawer] then
             cabinet.remove_drawer_by_name(drawer)
         end
     end
 
+    -- replace the order table in-place so the reference cabinet holds stays valid
+    for i = #drawer_order, 1, -1 do
+        drawer_order[i] = nil
+    end
+    for i, name in ipairs(new_order) do
+        drawer_order[i] = name
+    end
 end
 
 local function update_files()
