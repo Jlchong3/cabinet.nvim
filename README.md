@@ -1,7 +1,3 @@
-Here is the updated README with those adjustments.
-
-***
-
 # cabinet.nvim
 
 A lightweight buffer navigation plugin for Neovim.
@@ -13,8 +9,6 @@ Instead of maintaining a single global list of marked buffers, with `cabinet.nvi
 * **Grouped Contexts:** Create multiple drawers to separate frontend files from backend files, tests from implementations, or however you structure your work.
 * **Project-Local Persistence:** State is persisted to disk automatically based on your current working directory.
 * **Minimal UI:** Includes a simple, floating scratch buffer for visually managing your drawers and files.
-
----
 
 ## Installation
 
@@ -33,9 +27,8 @@ Install the plugin using your preferred package manager:
 vim.pack.add {
     'https://github.com/Jlchong3/cabinet.nvim'
 }
-require('cabinet').setup() ```
-
----
+require('cabinet').setup()
+```
 
 ## Configuration
 
@@ -62,8 +55,6 @@ vim.keymap.set('n', '<A-s>', function() cabinet.open_drawer(3) end)
 vim.keymap.set('n', '<A-a>', function() cabinet.open_drawer(4) end)
 ```
 
----
-
 ## The UI
 
 Calling `cabinet.open()` opens a floating, editable scratch buffer. You can use standard Neovim motions to navigate, and edit the text directly to manage your state (e.g., type a new name on an empty line to create a drawer, or delete a line to remove a drawer or untrack a buffer).
@@ -77,8 +68,6 @@ The buffer provides the following local mappings:
 `q` : Close the UI.
 
 Changes made to the text are saved automatically when leaving insert mode or closing the window.
-
----
 
 ## API Reference
 
