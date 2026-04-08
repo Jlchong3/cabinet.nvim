@@ -124,9 +124,12 @@ end
 ---@param drawer string? Name for the new drawer (optional; prompts if nil)
 ---@return string|nil drawer The name of the created drawer, or nil on failure
 cabinet.add_drawer = function(drawer)
-    drawer = drawer or vim.fn.input('Drawer name: ')
+    drawer = drawer or vim.fn.input({
+        prompt = 'Drawer name: ',
+        cancelreturn = 'NO INPUT'
+    })
 
-    if drawer == nil then return end
+    if drawer == 'NO INPUT' then return end
     if drawer == '' then drawer = 'default' end
     if state.drawers[drawer] then
         print('Drawer already exists')
