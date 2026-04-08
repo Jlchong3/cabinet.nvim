@@ -7,17 +7,8 @@ MIT License Copyright (c) 2025 Jose Chong
 
 Instead of maintaining a single global list of marked buffers, with
 cabinet.nvim you organize your workflow into isolated "drawers." It is
-perfect for grouping related files by feature, component, or task—allowing
+perfect for grouping related files by feature or task, allowing
 you to instantly switch contexts and jump between buffers.
-
-------------------------------------------------------------------------------
-                                                               *cabinet.setup()*
-                            `cabinet.setup`({opts})
-Initializes the cabinet module: registers autocommands and returns the public API.
-Parameters ~
-{opts} `(table?)` Reserved for future configuration options
-Return ~
-`(table)` M The public cabinet API
 
 ------------------------------------------------------------------------------
                                                                *cabinet.setup()*
@@ -31,9 +22,9 @@ Return ~
 ------------------------------------------------------------------------------
                                                   *cabinet.get_current_drawer()*
                          `cabinet.get_current_drawer`()
-Returns the 1-based index of the currently active drawer, or nil when no drawer is open.
+Returns the 1-based index of the currently active drawer, or -1 when no drawer is open.
 Return ~
-`(integer|nil)` drawer_pos
+`(integer)` drawer_pos
 
 ------------------------------------------------------------------------------
                                                           *cabinet.add_drawer()*
@@ -46,16 +37,6 @@ Parameters ~
 {drawer} `(string?)` Name for the new drawer (optional; prompts if nil)
 Return ~
 `(string|nil)` drawer The name of the created drawer, or nil on failure
-
-------------------------------------------------------------------------------
-                                                        *cabinet.drawer_exist()*
-                        `cabinet.drawer_exist`({drawer})
-Returns the file list table for `drawer` if it exists, or nil otherwise.
-This is truthy even when the drawer is empty (it returns an empty table).
-Parameters ~
-{drawer} `(string)` Drawer name to check
-Return ~
-`(FileInfo[]|nil)` files The drawer's file list, or nil if the drawer does not exist
 
 ------------------------------------------------------------------------------
                                                        *cabinet.remove_drawer()*
@@ -149,11 +130,11 @@ Return ~
 Appends the current buffer to a drawer and records its cursor position.
 If `drawer_pos` is nil, uses the active drawer; creates one named `"default"`
 when no drawers exist yet.
-Returns the 1-based index of the newly added file within its drawer, or nil on failure.
+Returns the 1-based index of the newly added file within its drawer, or -1 on failure.
 Parameters ~
 {drawer_pos} `(integer?)` 1-based index of the target drawer (defaults to `current_drawer`)
 Return ~
-`(integer|nil)` file_index Index of the added file within the drawer, or nil on failure
+`(integer)` file_index Index of the added file within the drawer, or -1 on failure
 
 ------------------------------------------------------------------------------
                                                          *cabinet.remove_file()*
@@ -186,6 +167,59 @@ Parameters ~
                                                                *cabinet.close()*
                                `cabinet.close`()
 Closes the drawer floating window. Delegates to the `ui` module.
+
+
+==============================================================================
+------------------------------------------------------------------------------
+                                                                *storage.save()*
+                   `storage.save`({tbl}, {path}, {is_empty})
+Persists the cabinet table to disk for the current working directory.
+The file is named after a SHA-256 hash of the cwd path, so each project
+gets its own isolated state file.
+If `is_empty` returns true and no file exists yet, the write is skipped
+to avoid creating empty data files.
+Parameters ~
+{tbl} `(table)` The cabinet table to persist
+{path} `(string)` Absolute path to the directory where cabinet data files are stored
+{is_empty} `(fun(tbl: table): boolean)` Predicate that returns true when the cabinet holds no meaningful data
+
+------------------------------------------------------------------------------
+                                                                *storage.load()*
+                             `storage.load`({path})
+Loads the cabinet table previously saved for the current working directory.
+Returns nil when no data file exists yet (first run in this project).
+Parameters ~
+{path} `(string)` Absolute path to the directory where cabinet data files are stored
+Return ~
+`(table|nil)` cabinet The deserialized cabinet table, or nil if no data file is found
+
+
+==============================================================================
+------------------------------------------------------------------------------
+                                                                     *ui.open()*
+                               `ui.open`({opts})
+Opens the drawer floating window.
+If the window is already open, focuses it without reinitializing.
+Sets up all buffer-local keymaps and autocommands on first open:
+
+Keymaps (normal mode):
+- `<CR>` — in drawer list: open selected drawer's file list;
+           in file list: close window and open the selected file.
+- `-`    — in file list: return to the drawer list.
+- `q`    — close the window.
+
+Autocommands (buffer-local):
+- `InsertLeave` — persist edits and refresh the buffer.
+- `VimResized`  — recompute and apply the window dimensions.
+Parameters ~
+{opts} `(vim.api.keyset.win_config?)` Optional overrides for the window configuration
+
+------------------------------------------------------------------------------
+                                                                    *ui.close()*
+                                  `ui.close`()
+Closes the floating drawer window and persists any edits made in the buffer.
+Flushes drawer list edits when in the top-level view,
+or file list edits when in the file list view.
 
 
  vim:tw=78:ts=8:noet:ft=help:norl:

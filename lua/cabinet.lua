@@ -101,7 +101,7 @@ end
 
 ---@private
 --- Returns the 1-based position of `drawer` inside `cabinet.drawer_order`,
---- or nil if the drawer does not exist.
+--- or -1 if the drawer does not exist.
 ---@param drawer string Drawer name to locate
 ---@return integer position 1-based index, or -1 if not found
 local function get_drawer_pos(drawer)
@@ -274,7 +274,7 @@ end
 --- Appends the current buffer to a drawer and records its cursor position.
 --- If `drawer_pos` is nil, uses the active drawer; creates one named `"default"`
 --- when no drawers exist yet.
---- Returns the 1-based index of the newly added file within its drawer, or nil on failure.
+--- Returns the 1-based index of the newly added file within its drawer, or -1 on failure.
 ---@param drawer_pos integer? 1-based index of the target drawer (defaults to `current_drawer`)
 ---@return integer file_index Index of the added file within the drawer, or -1 on failure
 cabinet.add_file = function(drawer_pos)

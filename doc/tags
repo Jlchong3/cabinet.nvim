@@ -1,7 +1,6 @@
 cabinet.add_drawer()	cabinet.txt	/*cabinet.add_drawer()*
 cabinet.add_file()	cabinet.txt	/*cabinet.add_file()*
 cabinet.close()	cabinet.txt	/*cabinet.close()*
-cabinet.drawer_exist()	cabinet.txt	/*cabinet.drawer_exist()*
 cabinet.get_current_drawer()	cabinet.txt	/*cabinet.get_current_drawer()*
 cabinet.get_drawer_files()	cabinet.txt	/*cabinet.get_drawer_files()*
 cabinet.get_drawer_files_by_name()	cabinet.txt	/*cabinet.get_drawer_files_by_name()*
@@ -17,3 +16,7 @@ cabinet.remove_file()	cabinet.txt	/*cabinet.remove_file()*
 cabinet.rename_drawer()	cabinet.txt	/*cabinet.rename_drawer()*
 cabinet.rename_drawer_by_name()	cabinet.txt	/*cabinet.rename_drawer_by_name()*
 cabinet.setup()	cabinet.txt	/*cabinet.setup()*
+storage.load()	cabinet.txt	/*storage.load()*
+storage.save()	cabinet.txt	/*storage.save()*
+ui.close()	cabinet.txt	/*ui.close()*
+ui.open()	cabinet.txt	/*ui.open()*
